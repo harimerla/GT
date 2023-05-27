@@ -49,10 +49,10 @@ export const shaders = () => {
   @binding(3) @group(0) var<storage, read_write> weight: array<f32>;
   @binding(4) @group(0) var<storage, read_write> colors:array<f32>;
 
-  fn getColor(value: f32)->vec3<f32>{
-    var size=f32(arrayLength(&colors)/3-1);
-    var per=i32(floor(value*size));
-    var r=vec3<f32>(colors[per],colors[per+1],colors[per+2]);
+  fn getColor(value: f32)->vec4<f32>{
+    var size=f32(arrayLength(&colors)/4-1);
+    var per=i32(floor(value));
+    var r=vec4<f32>(colors[per],colors[per+1],colors[per+2],colors[per+3]);
     return r;
   }
   @compute @workgroup_size(4)
@@ -69,24 +69,31 @@ export const shaders = () => {
     var yIndex=f32((k/4)%(256));
     xIndex = xIndex/256;
     yIndex = yIndex/256;
-    var sigma: f32 = 10000;
+    var sigma: f32 = 1000;
     for(i=0;i<n;i=i+1){
       var square_dist = (x[i]-xIndex)*(x[i]-xIndex)+(y[i]-yIndex)*(y[i]-yIndex);
       square_dist = square_dist*sigma;
-      value=value+(weight[i]/(square_dist+1));
+      value=value+(weight[i])/(square_dist+1);
     }
-    //value=(value*100+64)%256;
-    // var min=-0.77;
-    // var max=0.33;
-    var min=-0.86;
-    var max=0.98;
+
+    var min=-0.97;
+    var max=1.18;
+    // var min=0.002;
+    // var max=0.34;
     value = (value-min)/(max-min);
-    //value = value*255+0;
+    value = value*f32(arrayLength(&colors)/4-1)+0;
+
+    // data[k]=value;
+    // data[k+1]=value;
+    // data[k+2]=value;
+    // data[k+3]=value;
+
     var color = getColor(value);
-    data[k]=color[0]*255;
-    data[k+1]=color[1]*255;
-    data[k+2]=color[2]*255;
-    data[k+3]=1;
+    data[k]=color[0];
+    data[k+1]=color[1];
+    data[k+2]=color[2];
+    data[k+3]=color[3];
+
   }
   
   `

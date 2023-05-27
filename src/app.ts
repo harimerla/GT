@@ -219,7 +219,16 @@ function pixelsToCanvas(pixels, width, height) {
     usage: GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST,
   });
 
-  var flatColor = new Float32Array(ColormapData('jet').flat());
+  var colormap = require('colormap');
+  var color = colormap({
+    colormap: 'jet',
+    nshades: 200,
+    format: 'rgba',
+    alpha: 1
+  });
+  console.log(color.flat());
+  //var flatColor = new Float32Array(ColormapData('jet2').flat());
+  var flatColor = new Float32Array(color.flat());
   var colomapBuff = device.createBuffer({
     label: 'color map buffer',
     size: flatColor.byteLength,
@@ -383,7 +392,7 @@ while(true){
       const htmlImage = convertFloat32ArrayToHTMLImageElement(result,width,height);
       console.log('htmlimage'+htmlImage.width+" : "+htmlImage.height);
       console.log('canvas dimension'+cubeTexture.width+" : "+cubeTexture.height);
-      const imageBitmap = await createImageBitmap(htmlImage);
+      const imageBitmap = await createImageBitmap(htmlImage, {resizeWidth:width, resizeHeight:height});
       //saveImageBitmapToPNG(imageBitmap, 'temp');
       console.log('generated :'+imageBitmap.width+' '+imageBitmap.height);
       console.log('texture: '+cubeTexture.width+" "+cubeTexture.height);
