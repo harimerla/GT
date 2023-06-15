@@ -9,7 +9,10 @@ module.exports = {
         path: path.resolve(__dirname, "dist"),
     },
     resolve: {
-        extensions: ['.tsx', '.js', '.ts']
+        extensions: ['.tsx', '.js', '.ts'],
+        alias: {
+            fs: '/node_modules/fs/package.json'
+        }
     },
     module: {
         rules: [
