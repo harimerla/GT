@@ -6,7 +6,8 @@ import csv from 'csv-parser';
 import * as fs from 'fs';
 import * as pandas from "pandas";
 import { DataFrame } from "pandas-js";
-import {exportToHtml, getExpData} from './preProcessing'
+import {drawPlot} from './plot'
+import {exportToHtml, getExpData,getExpData1, getAGPLOT, preProcessExpData, getSelection} from './preProcessing'
 //import * as csvtojson from 'csvtojson';
 const csvtojson=require("csvtojson");
 var Plotly = require('plotly.js/lib/core');
@@ -20,8 +21,35 @@ Plotly.register([
 
 module.exports = Plotly;
 
+async function convertPromiseToFloat32Array(outcome) {
+  try {
+    const result = await outcome;
+    if (result instanceof Float32Array) {
+      return result;
+    } else {
+      throw new Error('Promise did not resolve to a Float32Array');
+    }
+  } catch (error) {
+    console.error('Error converting promise to Float32Array:', error);
+    return null;
+  }
+}
 
+function rotate90DegreesCounterClockwise(array) {
+  const rows = array.length;
+  const cols = array[0].length;
+  const rotatedArray = [];
 
+  for (let col = cols - 1; col >= 0; col--) {
+    const newRow = [];
+    for (let row = 0; row < rows; row++) {
+      newRow.push(array[row][col]);
+    }
+    rotatedArray.push(newRow);
+  }
+
+  return rotatedArray;
+}
 
 
 function getImageDataFromImage(image: HTMLImageElement): Uint8ClampedArray {
@@ -171,7 +199,7 @@ function normalize(arr: Float32Array){
   return temp;
 }
 
-async function main(expressionData: Float32Array, layoutDataX: Float32Array, layoutDataY: Float32Array, geneName: Float32Array, sigmaa=1, showGene: boolean, scaleMin: number, scaleMax: number) {
+async function main(expressionData: Float32Array, layoutDataX: Float32Array, layoutDataY: Float32Array, geneName: Float32Array, sigmaa=1, showGene: boolean, scaleMin: number, scaleMax: number, sampleSize: number, lastIternation:number,  data: Float32Array) {
   var adapter = await navigator.gpu.requestAdapter();
   var device = await adapter.requestDevice();
 
@@ -314,7 +342,9 @@ async function main(expressionData: Float32Array, layoutDataX: Float32Array, lay
     usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.COPY_SRC | GPUBufferUsage.STORAGE,
   });
 
-  var dataValues = new Float32Array(256*256);
+  // var dataValues = new Float32Array(256*256);
+  var dataValues = data;
+  console.log('just checking : '+data[0])
   var dataValuesBuff = device.createBuffer({
     label: 'data values only buffer',
     size: dataValues.byteLength,
@@ -328,8 +358,8 @@ async function main(expressionData: Float32Array, layoutDataX: Float32Array, lay
   console.log(x.length+' '+x[0]);
   console.log(y.length+' '+y[0]);
   console.log(weight.length+' '+weight[0]);
-  var sigmaMap = {0:0, 0.1:9000, 0.2:8000,0.3:7000,0.4:6000, 0.5:5000,0.6:2000, 0.7:1000, 0.8:500, 0.9:100,1:10}
-  var params = new Float32Array([sigmaMap[sigmaa],scaleMin,scaleMax]);
+  var sigmaMap = {0:0, 0.1:9000, 0.2:8000,0.3:7000,0.4:6000, 0.5:5000,0.6:2000, 0.7:1000, 0.8:500, 0.9:100,1:50}
+  var params = new Float32Array([sigmaMap[sigmaa],scaleMin,scaleMax, sampleSize, lastIternation]);
   //var params = new Float32Array([sigmaa,scaleMin,scaleMax]);
   //sigma.fill([sigmaa,scaleMin,scaleMax],0,3);
   // var x = CubeDataGene().x;
@@ -557,15 +587,31 @@ while(true){
   const htmlImage = await convertFloat32ArrayToHTMLImageElement(result,width,height);
   const imageBitmap = await createImageBitmap(htmlImage, {resizeWidth:width, resizeHeight:height});
 
+  // document.getElementById('canvas-div').on('plotly_selected', function(eventData) {
+  //   var selectedPoints = eventData.points;
+  
+  //   // Do something with the selected points
+  //   console.log('Selected Points:', selectedPoints);
+  // });
+  // device.queue.copyExternalImageToTexture(
+  //   {source:  imageBitmap},
+  //   { texture: cubeTexture},
+  //   [imageBitmap.width, imageBitmap.height,1]
+  // );
   var converted2DData = convert1DArrayTo2D(dataOnlyResult,256,256);
+    console.log('inside draw plot')
   // console.log('normalize: '+x);
   // console.log('normalize: '+y);
   //console.log('2d array'+convert1DArrayTo2D(dataOnlyResult,256,256))
   var heatMapdata = [{
-    z: converted2DData,
+    z: rotate90DegreesCounterClockwise(converted2DData).reverse(),
+    //z: converted2DData,
     colorscale: 'Jet',
     type: 'heatmap',
-    hoverinfo: 'none'
+    hoverinfo: 'none',
+    zmin: scaleMin,
+    zmax: scaleMax
+
   },{
     x: normalize(x),
     y: normalize(y),
@@ -580,9 +626,11 @@ while(true){
   }]
 
   var contourData = [{
-    z: converted2DData,
+    z: rotate90DegreesCounterClockwise(converted2DData).reverse(),
     type: 'contour',
     colorscale: 'Jet',
+    zmin: scaleMin,
+    zmax: scaleMax
   },{
     x: normalize(x),
     y: normalize(y),
@@ -609,32 +657,29 @@ while(true){
     width:768,
     height:768,
   }
-  Plotly.newPlot('canvas-div', heatMapdata, layout).then((gd)=>{Plotly.toImage(gd,{width:768,height:768}).then((url)=>{
-    var img = document.getElementById('a1') as HTMLAnchorElement;
-    img.href=url;
-  })});
-  Plotly.newPlot('canvas-contour-div', contourData, layout).then((gd)=>{Plotly.toImage(gd,{width:768,height:768}).then((url)=>{
-    var img = document.getElementById('a2') as HTMLAnchorElement;
-    img.href=url;
-  })});
-  // device.queue.copyExternalImageToTexture(
-  //   {source:  imageBitmap},
-  //   { texture: cubeTexture},
-  //   [imageBitmap.width, imageBitmap.height,1]
-  // );
-  
+  if(lastIternation==1){
+    Plotly.newPlot('canvas-div', heatMapdata, layout).then((gd)=>{Plotly.toImage(gd,{width:768,height:768}).then((url)=>{
+      var img = document.getElementById('a1') as HTMLAnchorElement;
+      img.href=url;
+    })});
+    Plotly.newPlot('canvas-contour-div', contourData, layout).then((gd)=>{Plotly.toImage(gd,{width:768,height:768}).then((url)=>{
+      var img = document.getElementById('a2') as HTMLAnchorElement;
+      img.href=url;
+    })});
+  }
   renderPass.draw(6);
   renderPass.end();
-  device.queue.submit([commandEncoder.finish()]);
+  //device.queue.submit([commandEncoder.finish()]);
   break;
 }
-
+return dataOnlyResult;
 };
 
 var expression = document.getElementById('expression') as HTMLInputElement;
 var layout = document.getElementById('layout') as HTMLInputElement;
 var expData, expressionData, layoutDataX, layoutDataY, geneName, layoutDataName,layoutData,flag=0,params={};
 var layoutDataMap = new Map<string, any>();
+var f=false;
 expression.addEventListener('change', ()=>{
   sleep(2000);
   var file = expression.files[0];
@@ -666,6 +711,7 @@ expression.addEventListener('change', ()=>{
   reader.readAsText(file);
   console.log('flag'+flag);
   flag++;
+  f=true;
 })
 
 layout.addEventListener('change', ()=>{
@@ -676,6 +722,7 @@ layout.addEventListener('change', ()=>{
   console.log('Inside Layout addeventlistener');
   reader.onload = function(e){
     var data = e.target.result;
+    var output;
     csvtojson({noheader:true}).fromString(data).then((jsonObjectArray) => {
       //console.log(jsonObjectArray);
       // console.log(Object.keys(jsonObjectArray));
@@ -702,12 +749,13 @@ layout.addEventListener('change', ()=>{
   flag++;
 })
 
-var selection=0;
-var selectDiv = document.getElementById('patient') as HTMLSelectElement;
-selectDiv.addEventListener('change', ()=>{
-  console.log(selectDiv.value);
-  selection = +selectDiv.value;
-})
+var selection:string[]=[];
+getAGPLOT(selection)
+// var selectDiv = document.getElementById('patient') as HTMLSelectElement;
+// selectDiv.addEventListener('change', ()=>{
+//   console.log(selectDiv.value);
+//   selection = +selectDiv.value;
+// })
 
 console.log('flag'+flag);
 var xIndex=0,yIndex=0,nameIndex=0,expIndex=0;
@@ -781,7 +829,9 @@ downloadDiv2.addEventListener('click',()=>{
 
 var len=0;
 var generate = document.getElementById('Generate');
-generate.addEventListener('click', ()=>{
+var result=0, lastIternation=0;
+
+generate.addEventListener('click', async ()=>{
   // console.log('x: '+layoutDataX.length+' y: '+layoutDataY.length+' exp: '+expressionData.length+' gene: '+geneName.length)
   // console.log('layoutx: '+layoutDataX)
   // console.log('layouty: '+layoutDataY)
@@ -797,30 +847,51 @@ generate.addEventListener('click', ()=>{
   // console.log('layoutData: '+layoutData[0]['field1']);
   // console.log('layoutData: '+layoutData[0][0]);
   // console.log('layoutData: '+typeof(layoutData));
-  layoutDataMap = getExpData(expData,layoutData,selection);
-  console.log('size: '+layoutDataMap['SULT4A1'])
-  var keys = Object.keys(layoutDataMap);
-  len=keys.length;
-    geneName = new Array(len);
-    layoutDataX = new Float32Array(len);
-    layoutDataY = new Float32Array(len);
-    expressionData = new Float32Array(len);
-    nameIndex=0,xIndex=0,yIndex=0,expIndex=0;
-    for(var i=0;i<keys.length;i++){
-      var row = layoutDataMap[keys[i]];
-      //console.log('row: '+row);
-      geneName[nameIndex++]=row[0];
-      layoutDataX[xIndex++]=(9*row[1]+0.05)/10;
-      layoutDataY[yIndex++]=(9*row[2]+0.05)/10;
-      expressionData[expIndex++]=row[3];
+  var data=new Float32Array(256*256);
+  selection = getSelection();
+  selection = Array.from(new Set(selection));
+  console.log('selection'+selection.length)
+  if(f==true)
+    expData = preProcessExpData(expData)
+    for (const select of selection) {
+    if(selection[selection.length-1]==select){
+      console.log('selection: '+select);
+      lastIternation=1;
     }
-  console.log('x: '+layoutDataX.length+' y: '+layoutDataY.length+' exp: '+expressionData.length+' gene: '+geneName.length)
-  console.log('layoutx: '+layoutDataX)
-  console.log('layouty: '+layoutDataY)
-  console.log('expression data: '+expressionData)
-  main(expressionData, layoutDataX, layoutDataY, geneName, sigma, showGene, scaleMin, scaleMax);
-  downloadDiv1.style.display='block';
-  downloadDiv2.style.display='block';
+    console.log('select '+ select)
+    layoutDataMap = getExpData1(expData,layoutData,select);
+    console.log('size: '+layoutDataMap['SULT4A1'])
+    var keys = Object.keys(layoutDataMap);
+    len=keys.length;
+      geneName = new Array(len);
+      layoutDataX = new Float32Array(len);
+      layoutDataY = new Float32Array(len);
+      expressionData = new Float32Array(len);
+      nameIndex=0,xIndex=0,yIndex=0,expIndex=0;
+      for(var i=0;i<keys.length;i++){
+        var row = layoutDataMap[keys[i]];
+        //console.log('row: '+row);
+        geneName[nameIndex++]=row[0];
+        layoutDataX[xIndex++]=0.9*row[1]+0.05;
+        layoutDataY[yIndex++]=1-(0.9*row[2]+0.05);
+        expressionData[expIndex++]=row[3];
+      }
+    console.log('x: '+layoutDataX.length+' y: '+layoutDataY.length+' exp: '+expressionData.length+' gene: '+geneName.length)
+    console.log('layoutx: '+layoutDataX.length)
+    console.log('layouty: '+layoutDataY.length)
+    console.log('expression data: '+expressionData.length)
+    var outcome=await main(expressionData, layoutDataX, layoutDataY, geneName, sigma, showGene, scaleMin, scaleMax, selection.length, lastIternation, data) as unknown as Float32Array;
+    await convertPromiseToFloat32Array(outcome).then((d)=>{
+      data=d;
+      console.log('final data: '+data[0]);
+    })
+    downloadDiv1.style.display='block';
+    downloadDiv2.style.display='block';
+    f=false;
+    lastIternation=0;
+}
+console.log('im gere')
+//drawPlot(data,layoutDataX,layoutDataY,expressionData,geneName,scaleMin,scaleMax,showGene)
 })
 
 async function sleep(ms) {

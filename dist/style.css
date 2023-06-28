@@ -1,0 +1,28 @@
+#container{
+  height: auto;
+}
+
+#filterDiv{
+  width: 30%;
+  height: 100%;
+  float: left;
+  margin-left: 0%;
+  overflow: auto;
+}
+
+#plotDiv{
+  margin-left: 30%;
+  margin-top: 0%;
+  overflow: scroll;
+  height: auto;
+}
+
+/* Custom CSS to move filters to the right */
+.ag-floating-filter-body {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.ag-floating-filter-body .ag-floating-filter-input {
+  margin-left: auto;
+}

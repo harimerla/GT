@@ -95,7 +95,7 @@ export const shaders = () => {
     // else{
     //   value=(value-minRange)/(maxRange-minRange);
     // }
-    dataOnly[k/4]=value;
+    dataOnly[k/4]=dataOnly[k/4]+value;
   }
 
   @compute @workgroup_size(1)
@@ -139,20 +139,10 @@ export const shaders = () => {
       data[i+3]=255;
     }
     for(var i:u32=0;i<arrayLength(&dataOnly);i++){
-      var value=dataOnly[i];
-      value=(value-min)/(max-min);
-      if(value<minRange){
-          value=0.0;
-        }
-        else if(value>maxRange){
-          value=1.0;
-        }
-        else{
-          value=(value-minRange)/(maxRange-minRange);
-          //value=value;
-        }
-      value=value*(params[2]-params[1])+params[1];
-      dataOnly[i]=value;
+      var sampleSize=params[3];
+      if(params[4]==1){
+        dataOnly[i]=dataOnly[i]/sampleSize;
+      }
     }
   }
   

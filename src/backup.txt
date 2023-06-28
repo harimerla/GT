@@ -18,3 +18,7 @@ commandEncoder.copyBufferToTexture(
 { width: width, height: height }
 );
 
+//import commands
+//const fs = require('fs'); 
+//import fs from 'fs-extra';
+//import * as Deno from 'deno';
