@@ -5,6 +5,8 @@ const csvtojson=require("csvtojson");
 import('ag-grid-enterprise')
 // import { Grid } from 'ag-grid-community';
 import { DomLayoutType, Grid, GridOptions } from 'ag-grid-community';
+import { copyFileSync } from 'fs';
+import {getPlotData,getGenes} from './rest'
 
 var samples: string[] = []
 
@@ -62,6 +64,22 @@ function getChartState (data, layout) {
     URL.revokeObjectURL(url)
   }
   
+export function mergeLayoutExpData(layoutMap: Map<string,any>, expMap:Map<string,any>, select: string){
+  var map = new Map<string,any>();
+  var genes = getGenes();
+  console.log(layoutMap)
+  console.log(genes)
+  console.log(expMap['TCGA-02-0004-01'])
+  // expMap[select]=expMap['TCGA-02-0004-01'];
+  for(var key of Object.keys(layoutMap)){
+    if(key in expMap[select]){
+      var row = layoutMap[key];
+      row.push(expMap[select][row[0]])
+      map[row[0]]=row;
+    }
+  }
+  return map;
+}
 export function preProcessExpData(expData){
   var data=new Map<string, any>();
   var fields = Object.keys(expData[0])
@@ -152,22 +170,23 @@ export function getData(map, index){
 }
 
 export async function getAGPLOT(selection: string[]){
-  var path = './clinical_Data_GBM.csv';
-  var data, fileContent;
-  var reader = new FileReader();
-  const response: Response = await fetch(path);
-  await response.text().then(d=>{
-    // console.log('response '+d);
-    fileContent=d;
-  })
-  await csvtojson({noheader:true}).fromString(fileContent).then((jsonObjectArray) => {
-    data = jsonObjectArray;
-  })
-  .catch((error) => {
-    console.error(error);
-  });
+  // var path = './csv/clinical_Data_GBM.csv';
+  // var data, fileContent;
+  // var reader = new FileReader();
+  // const response: Response = await fetch(path);
+  // await response.text().then(d=>{
+  //   // console.log('response '+d);
+  //   fileContent=d;
+  // })
+  // await csvtojson({noheader:true}).fromString(fileContent).then((jsonObjectArray) => {
+  //   data = jsonObjectArray;
+  // })
+  // .catch((error) => {
+  //   console.error(error);
+  // });
   // var rowData = data;
   const columnDefs = [
+    { field: 'id', hide: true,},
     { field: 'SampleID',checkboxSelection: true, filter: 'agSetColumnFilter'},
     { field: 'Overal_Survival_Days', filter:'agNumberColumnFilter'},
     { field: 'Overal_Survival_Status', filter:'agNumberColumnFilter'},
@@ -176,23 +195,29 @@ export async function getAGPLOT(selection: string[]){
   ];
   
   // specify the data
-  var rowData = [];
-  var fields = Object.keys(data[0]);
-  for(var i=1;i<data.length;i++){
-    var row = data[i];
-    rowData.push({SampleID: data[i][fields[0]],
-      Overal_Survival_Days: +data[i][fields[1]],
-      Overal_Survival_Status: +data[i][fields[2]],
-      GBM_Subtype: data[i][fields[3]],
-      Age_at_GBM_Diagnosis: +data[i][fields[4]],
-    })
-    // rowData.push({SampleID: 1,
-    //   Overal_Survival_Days: 2,
-    //   Overal_Survival_Status: 3,
-    //   GBM_Subtype: 4,
-    //   Age_at_GBM_Diagnosis: 5,
-    // })
+  var rowData = []
+  var rowSamples = await getPlotData();
+  // console.log('row data: '+rowSamples);
+  for(var row of rowSamples){
+    rowData.push({id:row.id, SampleID:row.sampleid, Overal_Survival_Days:row.overal_survival__days_, Overal_Survival_Status:row.overal_survival_status,GBM_Subtype:row.gbm_subtype, Age_at_GBM_Diagnosis:row.age_at_gbm_diagnosis})
   }
+  // var rowData = []
+  // var fields = Object.keys(data[0]);
+  // for(var i=1;i<data.length;i++){
+  //   var row = data[i];
+  //   rowData.push({SampleID: data[i][fields[0]],
+  //     Overal_Survival_Days: +data[i][fields[1]],
+  //     Overal_Survival_Status: +data[i][fields[2]],
+  //     GBM_Subtype: data[i][fields[3]],
+  //     Age_at_GBM_Diagnosis: +data[i][fields[4]],
+  //   })
+  //   // rowData.push({SampleID: 1,
+  //   //   Overal_Survival_Days: 2,
+  //   //   Overal_Survival_Status: 3,
+  //   //   GBM_Subtype: 4,
+  //   //   Age_at_GBM_Diagnosis: 5,
+  //   // })
+  // }
   // let the grid know which columns and what data to use
   /** @type {import('ag-grid-community').GridOptions} */
   var gridDiv=document.querySelector("#myGrid") as HTMLElement;
@@ -239,12 +264,13 @@ export async function getAGPLOT(selection: string[]){
   // const containerHeight = rowHeight * rowCount;
   // gridDiv.style.height = containerHeight + 'px';
   new Grid(gridDiv, gridOptions);
-  gridDiv.addEventListener('change',()=>{
+  gridDiv.addEventListener('click',()=>{
     const selectedRows = gridOptions.api.getSelectedRows();
     console.log(selectedRows)
     console.log(selectedRows[selectedRows.length-1]['SampleID'])
     //selection.push(selectedRows[selectedRows.length-1]['SampleID'])
-    for(row of selectedRows){
+    selection=[]
+    for(var row of selectedRows){
       selection.push(row['SampleID'])
     }
     console.log('updated selection: '+selection)
@@ -260,7 +286,7 @@ export async function getAGPLOT(selection: string[]){
   gridDiv.style.height = '60%'; // Set the desired height of the grid container
   gridDiv.style.width = '100%';
   gridDiv.style.overflow = 'auto';
-  console.log(gridDiv.offsetHeight)
-  console.log(gridOptions.api.getRowNode('0').rowHeight)
+  // console.log(gridDiv.offsetHeight)
+  // console.log(gridOptions.api.getRowNode('0').rowHeight)
 }
 

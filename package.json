@@ -34,7 +34,11 @@
     "webpack-dev-server": "^4.2.1"
   },
   "dependencies": {
+    "@spreadtheweb/multi-range-slider": "^1.0.3",
+    "@types/node": "^20.3.2",
     "3d-view-controls": "^2.2.2",
+    "ag-grid-community": "^30.0.0",
+    "ag-grid-enterprise": "^30.0.2",
     "bootstrap": "^5.3.0",
     "browserify-fs": "^1.0.0",
     "colormap": "^2.3.2",

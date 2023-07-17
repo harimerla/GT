@@ -7,7 +7,9 @@ import * as fs from 'fs';
 import * as pandas from "pandas";
 import { DataFrame } from "pandas-js";
 import {drawPlot} from './plot'
-import {exportToHtml, getExpData,getExpData1, getAGPLOT, preProcessExpData, getSelection} from './preProcessing'
+import {exportToHtml,getExpData1, getAGPLOT, preProcessExpData, getSelection,mergeLayoutExpData} from './preProcessing'
+import {loadPlotData,loadLayoutData, loadExpData, getExp, getXandY, getGenes,loadGeneRelation,getGeneReationMapName} from './rest'
+// import RangeSlider from '@spreadtheweb/multi-range-slider';
 //import * as csvtojson from 'csvtojson';
 const csvtojson=require("csvtojson");
 var Plotly = require('plotly.js/lib/core');
@@ -20,6 +22,15 @@ Plotly.register([
 ]);
 
 module.exports = Plotly;
+
+function on<T extends HTMLElement, K extends keyof HTMLElementEventMap>(
+  element: T,
+  event: K,
+  handler: (event: HTMLElementEventMap[K]) => void
+) {
+  element.addEventListener(event, handler);
+}
+
 
 async function convertPromiseToFloat32Array(outcome) {
   try {
@@ -184,7 +195,7 @@ function convert1DArrayTo2D(float32Array, rows, columns) {
 }
 
 function normalize(arr: Float32Array){
-  var min = 256, max=-256;
+  var min = resolution, max=-resolution;
   var temp = new Float32Array(arr.length)
   for(var i=0;i<arr.length;i++){
     if(min>arr[i])
@@ -194,12 +205,12 @@ function normalize(arr: Float32Array){
   }
   for(var i=0;i<arr.length;i++){
     //temp[i]=(arr[i]-min)/(max-min);
-    temp[i]=arr[i]*255;
+    temp[i]=arr[i]*resolution;
   }
   return temp;
 }
 
-async function main(expressionData: Float32Array, layoutDataX: Float32Array, layoutDataY: Float32Array, geneName: Float32Array, sigmaa=1, showGene: boolean, scaleMin: number, scaleMax: number, sampleSize: number, lastIternation:number,  data: Float32Array) {
+async function main(expressionData: Float32Array, layoutDataX: Float32Array, layoutDataY: Float32Array, geneName: Float32Array, sigmaa=1, showGene: boolean, scaleMin: number, scaleMax: number, resolution: number, sampleSize: number, lastIternation:number,  data: Float32Array) {
   var adapter = await navigator.gpu.requestAdapter();
   var device = await adapter.requestDevice();
 
@@ -233,12 +244,12 @@ async function main(expressionData: Float32Array, layoutDataX: Float32Array, lay
       mipmapFilter: 'nearest',
       maxAnisotropy: 1
     } as GPUSamplerDescriptor);
-  var width=256, height=256;
+  var width=resolution, height=resolution;
   var imageee;
   let cubeTexture: GPUTexture;
     {
       const img = document.createElement('img');
-      const response: Response = await fetch('dog.webp');
+      const response: Response = await fetch('images/dog.webp');
       const blob: Blob = await response.blob();
 
       const imageBitmap = await createImageBitmap(blob);
@@ -260,7 +271,7 @@ async function main(expressionData: Float32Array, layoutDataX: Float32Array, lay
   
     // Load the default colormap and upload it
   var colormapImage = new Image();
-  colormapImage.src = "/dog.webp";
+  colormapImage.src = "/images/dog.webp";
   colormapImage.id = 'image';
   await colormapImage.decode();
   const imageBitmap = await createImageBitmap(colormapImage);
@@ -335,14 +346,14 @@ async function main(expressionData: Float32Array, layoutDataX: Float32Array, lay
     }]
   })
 
-  var zeroimg = new Float32Array(256*256*4);
+  var zeroimg = new Float32Array(resolution*resolution*4);
   var texBuff = device.createBuffer({
     label: 'textbuff buffer',
     size: zeroimg.byteLength,
     usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.COPY_SRC | GPUBufferUsage.STORAGE,
   });
 
-  // var dataValues = new Float32Array(256*256);
+  // var dataValues = new Float32Array(resolution*resolution);
   var dataValues = data;
   console.log('just checking : '+data[0])
   var dataValuesBuff = device.createBuffer({
@@ -358,8 +369,8 @@ async function main(expressionData: Float32Array, layoutDataX: Float32Array, lay
   console.log(x.length+' '+x[0]);
   console.log(y.length+' '+y[0]);
   console.log(weight.length+' '+weight[0]);
-  var sigmaMap = {0:0, 0.1:9000, 0.2:8000,0.3:7000,0.4:6000, 0.5:5000,0.6:2000, 0.7:1000, 0.8:500, 0.9:100,1:50}
-  var params = new Float32Array([sigmaMap[sigmaa],scaleMin,scaleMax, sampleSize, lastIternation]);
+  var sigmaMap = {0:0,0.05:10000, 0.1:9000,0.15:8500, 0.2:8000,0.25:7500,0.3:7000,0.35:6500,0.4:6000,0.45:5500, 0.5:5000,0.55:3500,0.6:2000,0.65:1500, 0.7:1000,0.75:750, 0.8:500,0.85:250, 0.9:100,0.95:75,1:50}
+  var params = new Float32Array([sigmaMap[sigmaa],scaleMin,scaleMax, sampleSize, lastIternation,resolution]);
   //var params = new Float32Array([sigmaa,scaleMin,scaleMax]);
   //sigma.fill([sigmaa,scaleMin,scaleMax],0,3);
   // var x = CubeDataGene().x;
@@ -528,18 +539,18 @@ var pass = encoder.beginComputePass({
 });
 pass.setPipeline(computePipeline);
 pass.setBindGroup(0, computeUniformBindGroup);
-pass.dispatchWorkgroups(width*height-1);
+pass.dispatchWorkgroups(width*height/16);
 
 pass.end();
 console.log('height: '+height+" width+"+width+" image bytelength: "+zeroimg.byteLength)
-device.queue.submit([encoder.finish()]);
+// device.queue.submit([encoder.finish()]);
 
-encoder = device.createCommandEncoder({label: 'Normalization Encoder'});
-pass = encoder.beginComputePass({label: 'Compute Pass for Normalization'});
-pass.setPipeline(computePipelineNormalize);
-pass.setBindGroup(0, computeUniformBindGroup);
-pass.dispatchWorkgroups(1);
-pass.end();
+// encoder = device.createCommandEncoder({label: 'Normalization Encoder'});
+// pass = encoder.beginComputePass({label: 'Compute Pass for Normalization'});
+// pass.setPipeline(computePipelineNormalize);
+// pass.setBindGroup(0, computeUniformBindGroup);
+// pass.dispatchWorkgroups(1);
+// pass.end();
 
 encoder.copyBufferToBuffer(texBuff,0,resultBuff, 0, resultBuff.size);
 encoder.copyBufferToBuffer(dataValuesBuff,0,dataOnlyResultBuff, 0, dataOnlyResultBuff.size);
@@ -564,12 +575,13 @@ resultBuff.unmap();
 // document.body.appendChild(link);
 // link.click();
 // console.log('output'+result[result.length-1]);
-var min=10000, max=-100000;
-for(var i=0;i<result.length;i++){
-  if(min>result[i])
-    min=result[i];
-  if(max<result[i])
-    max=result[i];
+var min=10000.0, max=-100000.0;
+console.log(dataOnlyResult.slice(0,5))
+for(var i=0;i<dataOnlyResult.length;i++){
+  if(min>dataOnlyResult[i])
+    min=dataOnlyResult[i];
+  if(max<dataOnlyResult[i])
+    max=dataOnlyResult[i];
 }
 console.log('min: '+min+' max: '+max);
 
@@ -598,64 +610,88 @@ while(true){
   //   { texture: cubeTexture},
   //   [imageBitmap.width, imageBitmap.height,1]
   // );
-  var converted2DData = convert1DArrayTo2D(dataOnlyResult,256,256);
+  var converted2DData = convert1DArrayTo2D(dataOnlyResult,resolution,resolution);
     console.log('inside draw plot')
   // console.log('normalize: '+x);
   // console.log('normalize: '+y);
-  //console.log('2d array'+convert1DArrayTo2D(dataOnlyResult,256,256))
-  var heatMapdata = [{
-    z: rotate90DegreesCounterClockwise(converted2DData).reverse(),
-    //z: converted2DData,
+  //console.log('2d array'+convert1DArrayTo2D(dataOnlyResult,resolution,resolution))
+  var finalData = rotate90DegreesCounterClockwise(converted2DData).reverse();
+  heatMapdata = [{
+    z: finalData,
+    //z: finalData,
     colorscale: 'Jet',
+    colorbar: {len:1,thickness:10},
+    thickness: 1,
     type: 'heatmap',
-    hoverinfo: 'none',
+    // text: finalData,
+    hoverinfo: true,
+    name: 'heatmap',
     zmin: scaleMin,
     zmax: scaleMax
 
   },{
     x: normalize(x),
     y: normalize(y),
-    z: expressionData,
+    // z: expressionData,
     mode: 'markers+text',
     type: 'scatter',
     text: geneName,
     colorscale: 'Jet',
     hoverinfo:true,
-    visible: 'true',
-    name: 'point'
-  }]
+    visible: 'legendonly',
+    name: 'Gene Name'}]
+  // },{
+  //   name: 'Gene Relation',
+  //   visible:'legendonly',
+  // }]
 
-  var contourData = [{
-    z: rotate90DegreesCounterClockwise(converted2DData).reverse(),
+  contourData = [{
+    z: finalData,
     type: 'contour',
     colorscale: 'Jet',
+    colorbar: {len:1, thickness:10},
+    // text: finalData,
     zmin: scaleMin,
     zmax: scaleMax
   },{
     x: normalize(x),
     y: normalize(y),
-    z: expressionData,
+    // z: expressionData,
     mode: 'markers+text',
     type: 'scatter',
-    text: expressionData,
+    text: geneName,
     colorscale: 'Jet',
     hoverinfo:true,
-    visible: 'true',
-    name: 'point'
-  }]
+    visible: 'legendonly',
+    name: 'Gene Name',}]
+  // },{
+  //   name: 'Gene Relation',
+  //   visible:'legendonly',
+  // }]
 
-  if(!showGene){
-    heatMapdata[1].visible='legendonly';
-    contourData[1].visible='legendonly';
-  }
-  else{
-    heatMapdata[1].visible='true';
-    contourData[1].visible='true';
-  }
+  // if(!showGene){
+  //   heatMapdata[1].visible='legendonly';
+  //   contourData[1].visible='legendonly';
+  // }
+  // else{
+  //   heatMapdata[1].visible='true';
+  //   contourData[1].visible='true';
+  // }
 
   var layout = {
     width:768,
     height:768,
+    showlegend: true,
+    legend: {
+      x: 0.8,
+      // xanchor: 'right',
+      y: 1.05,
+      bgcolor: 'E2E2E2'
+    },
+    font:{
+      color:"white",
+      size:12,
+    }
   }
   if(lastIternation==1){
     Plotly.newPlot('canvas-div', heatMapdata, layout).then((gd)=>{Plotly.toImage(gd,{width:768,height:768}).then((url)=>{
@@ -675,9 +711,34 @@ while(true){
 return dataOnlyResult;
 };
 
+// var selection:string[]=[];
+// var chooseCancer = document.getElementById('patient');
+// chooseCancer.addEventListener('click',()=>{
+//   async function asyncFunc(){
+//     await loadPlotData();
+//     await loadExpData();
+//     await loadLayoutData();
+//     getAGPLOT(selection);
+//   }
+//   asyncFunc()
+// });
+var contourData, heatMapdata;
+var resolution=256;
+async function asyncFunc(){
+  await loadPlotData();
+  await loadExpData();
+  await loadLayoutData();
+  loadGeneRelation();
+}
+console.log('before');
+asyncFunc();
+sleep(3000).then(()=>{
+  console.log('after timer');
+console.log('after');
 var expression = document.getElementById('expression') as HTMLInputElement;
 var layout = document.getElementById('layout') as HTMLInputElement;
 var expData, expressionData, layoutDataX, layoutDataY, geneName, layoutDataName,layoutData,flag=0,params={};
+var a,b;
 var layoutDataMap = new Map<string, any>();
 var f=false;
 expression.addEventListener('change', ()=>{
@@ -789,29 +850,113 @@ var xIndex=0,yIndex=0,nameIndex=0,expIndex=0;
 //   }
 // }
 var sigmaInput = document.getElementById('sigma_range') as HTMLInputElement;
-var sigma=1;
+var sigma=0.5;
 sigmaInput.addEventListener('change', ()=>{
   sigma=+sigmaInput.value;
   params['sigma']=sigma;
 })
 
-var scaleInputMin = document.getElementById('scale-min') as HTMLInputElement;
-var scaleInputMax = document.getElementById('scale-max') as HTMLInputElement;
-var scaleMin=-10, scaleMax=10;
-scaleInputMin.addEventListener('change', ()=>{
-  scaleMin=+scaleInputMin.value;
-  params['scaleMin']=scaleMin;
-})
+// var slider = document.getElementById('range-slider-example');
+var slider = document.getElementById('parentScale');
+// slider.addEventListener('change',()=>{
+//   console.log(slider);
+// })
+var plotLayout = {
+  width:768,
+  height:768,
+  showlegend: true,
+    legend: {
+      x: 0.8,
+      // xanchor: 'right',
+      y: 1.05,
+      bgcolor: 'E2E2E2'
+    },
+    font:{
+      color:"white",
+      size:12,
+    }
+}
+var scaleInputMin = document.getElementById('minText') as HTMLInputElement;
+var scaleInputMax = document.getElementById('maxText') as HTMLInputElement;
+var scaleMin=-3, scaleMax=3;
+scaleInputMin.addEventListener('change',()=>{
+  console.log('scaleInputMin');
+});
 scaleInputMax.addEventListener('change',()=>{
+  console.log('scaleInputMax');
+});
+slider.addEventListener('click', ()=>{
+  scaleMin=+scaleInputMin.value;
+  // scaleMin=21;
+  console.log(scaleMin);
+  params['scaleMin']=scaleMin;
   scaleMax=+scaleInputMax.value;
+  console.log(scaleMax);
   params['scaleMax']=scaleMax;
+  if((heatMapdata!=null || heatMapdata!=undefined) && (contourData!=null || contourData!=undefined)){
+    heatMapdata[0].zmin=scaleMin;
+    contourData[0].zmin=scaleMin;
+    heatMapdata[0].zmax=scaleMax;
+    contourData[0].zmax=scaleMax;
+    Plotly.newPlot('canvas-div', heatMapdata, plotLayout).then((gd)=>{Plotly.toImage(gd,{width:768,height:768}).then((url)=>{
+      var img = document.getElementById('a1') as HTMLAnchorElement;
+      img.href=url;
+    })});
+    Plotly.newPlot('canvas-contour-div', contourData, plotLayout).then((gd)=>{Plotly.toImage(gd,{width:768,height:768}).then((url)=>{
+      var img = document.getElementById('a2') as HTMLAnchorElement;
+      img.href=url;
+    })});
+  }
 })
+// scaleInputMax.addEventListener('change',()=>{
+//   scaleMax=+scaleInputMax.value;
+//   console.log(scaleMin);
+//   params['scaleMax']=scaleMax;
+//   if((heatMapdata!=null || heatMapdata!=undefined) && (contourData!=null || contourData!=undefined)){
+//     heatMapdata[0].zmax=scaleMax;
+//     contourData[0].zmax=scaleMax;
+//     Plotly.deleteTraces('canvas-div');
+//     Plotly.deleteTraces('canvas-contour-div');
+//     Plotly.newPlot('canvas-div', heatMapdata, layout).then((gd)=>{Plotly.toImage(gd,{width:768,height:768}).then((url)=>{
+//       var img = document.getElementById('a1') as HTMLAnchorElement;
+//       img.href=url;
+//     })});
+//     Plotly.newPlot('canvas-contour-div', contourData, layout).then((gd)=>{Plotly.toImage(gd,{width:768,height:768}).then((url)=>{
+//       var img = document.getElementById('a2') as HTMLAnchorElement;
+//       img.href=url;
+//     })});
+//   }
+// })
+
+var resoluDiv = document.getElementById('pixel') as HTMLInputElement;
+resoluDiv.addEventListener('change', ()=>{
+  resolution=+resoluDiv.value;
+  params['resolution']=+resoluDiv.value;
+});
+
 var showGeneInput = document.getElementById('show gene') as HTMLInputElement;
 var showGene=false;
 showGeneInput.addEventListener('click', ()=>{
   showGene=showGeneInput.checked;
   params['showGene']=showGene;
-  console.log('show gene'+showGeneInput.checked);
+  if(heatMapdata!=undefined && contourData!=undefined){
+    if(!showGene){
+      heatMapdata[1].visible='legendonly';
+      contourData[1].visible='legendonly';
+    }
+    else{
+      heatMapdata[1].visible='true';
+      contourData[1].visible='true';
+    }
+    Plotly.newPlot('canvas-div', heatMapdata, plotLayout).then((gd)=>{Plotly.toImage(gd,{width:768,height:768}).then((url)=>{
+      var img = document.getElementById('a1') as HTMLAnchorElement;
+      img.href=url;
+    })});
+    Plotly.newPlot('canvas-contour-div', contourData, plotLayout).then((gd)=>{Plotly.toImage(gd,{width:768,height:768}).then((url)=>{
+      var img = document.getElementById('a2') as HTMLAnchorElement;
+      img.href=url;
+    })});
+  }
 })
 
 var image;
@@ -831,7 +976,108 @@ var len=0;
 var generate = document.getElementById('Generate');
 var result=0, lastIternation=0;
 
+// var graphDiv = document.getElementById('canvas-div') as object;
+// graphDiv.('plotly_selected', (eventData)=> {
+//   var x = [];
+//   var y = [];
+  
+//   var colors = [];
+//   var color1Light = '#c2a5cf';
+//   var color1 = '#7b3294';
+//   var N = 1000;
+//   for(var i = 0; i < N; i++) colors.push(color1Light);
+  
+//   var points = Plotly.getSelectedPoints(graphDiv);
+//   console.log(points);
+//   console.log('points selected');
+//   // console.log(eventData.points)
+  
+//   // eventData.points.forEach(function(pt) {
+//   //   x.push(pt.x);
+//   //   y.push(pt.y);
+//   //   colors[pt.pointNumber] = color1;
+//   // });
+  
+//   // Plotly.restyle(graphDiv, {
+//   //   x: [x, y],
+//   //   xbins: {}
+//   // }, [1, 2]);
+  
+//   // Plotly.restyle(graphDiv, 'marker.color', [colors], [0]);
+// });
+var geneNames = getGenes();
+// console.log('gene names: '+geneNames);
+  var selectGeneDiv = document.getElementById('selectGene') as HTMLSelectElement;
+  for(var i=0;i<geneNames.length;i++){
+    console.log('option no: '+i+" name: "+geneNames[i]);
+    var option = document.createElement('option');
+    option.value = geneNames[i];
+    option.text = geneNames[i];
+    selectGeneDiv.appendChild(option);
+}
+var scatterX=[], scatterY=[], scatterNames=[];
+var geneRelatationTraceMap = new Map<string, any>(), traceIndex=2;
+var graphDiv = document.getElementById('canvas-div');
+//var selectGeneDiv = document.getElementById('selectGene') as HTMLSelectElement;
+selectGeneDiv.addEventListener('change',()=>{
+  console.log('traces array: '+Array.from(Array(traceIndex).keys()).slice(2,traceIndex+1));
+  Plotly.deleteTraces(graphDiv,Array.from(Array(traceIndex).keys()).slice(2,traceIndex+1))
+  geneRelatationTraceMap = new Map<string, any>(), traceIndex=2;
+  // console.log(Object.keys(selectGeneDiv.selectedOptions));
+  // console.log(selectGeneDiv.selectedIndex);
+  console.log('selected value: '+selectGeneDiv.value);
+  var geneRelationNameMap = getGeneReationMapName();
+  console.log(geneRelationNameMap);
+  for(var i=0;i<selectGeneDiv.selectedOptions.length;i++){
+    scatterX=[];
+    scatterY=[];
+    scatterNames=[];
+    var optionText = selectGeneDiv.selectedOptions[i].innerText;
+    console.log(optionText);
+    console.log(optionText in geneRelationNameMap)
+    if(!(optionText in geneRelationNameMap)){
+      // selectGeneDiv.selectedOptions[i].selected=false;
+      // alert('Gene is not in List')
+      // traceIndex--;
+      var trace = {x:scatterX,y:scatterY,type:'scatter', name:'Gene Relations',visible:'true',text:scatterNames,mode: 'lines+markers+text',legendgroup:'Gene Relation',showlegend:false};
+      geneRelatationTraceMap[optionText] = [trace,traceIndex++]
+      Plotly.addTraces(graphDiv, trace);
+      continue;
+    }
+    for(var j=0;j<geneRelationNameMap[optionText].length;j++){ 
+      var name = geneRelationNameMap[optionText][j];
+      if(!(name in b))
+        break;
+      console.log(name, b[name]);
+      scatterX.push((0.9*b[name][1]+0.05)*resolution);
+      scatterY.push(resolution-(0.9*b[name][2]+0.05)*resolution);
+      scatterNames.push(name);
+    }
+  var trace = {x:scatterX,y:scatterY,type:'scatter', name:'Gene Relations',visible:'true',text:scatterNames,mode: 'lines+markers+text',legendgroup:'Gene Relation',showlegend:false};
+  geneRelatationTraceMap[optionText] = [trace,traceIndex++]
+  console.log(scatterX);
+  console.log(scatterY);
+  console.log(scatterNames);
+  // Plotly.deleteTraces(graphDiv, -1);
+  Plotly.addTraces(graphDiv, trace);
+  }
+  // for(var i=0;i<selectGeneDiv.selectedOptions.length;i++){
+  //   var firstOptionText = selectGeneDiv.selectedOptions[0].innerText;
+  //   var optionText = selectGeneDiv.selectedOptions[i].innerText;
+  //   scatterX.push((0.9*b[firstOptionText][1]+0.05)*resolution);
+  //   scatterY.push(resolution-(0.9*b[firstOptionText][2]+0.05)*resolution);
+  //   scatterNames.push(firstOptionText);
+  //   scatterX.push((0.9*b[optionText][1]+0.05)*resolution);
+  //   scatterY.push(resolution-(0.9*b[optionText][2]+0.05)*resolution);
+  //   scatterNames.push(optionText);
+  // }
+})
+a = getExp();
+b = getXandY();
+
 generate.addEventListener('click', async ()=>{
+  const startTime = new Date().getTime();
+  console.log('start time: '+startTime);
   // console.log('x: '+layoutDataX.length+' y: '+layoutDataY.length+' exp: '+expressionData.length+' gene: '+geneName.length)
   // console.log('layoutx: '+layoutDataX)
   // console.log('layouty: '+layoutDataY)
@@ -847,21 +1093,22 @@ generate.addEventListener('click', async ()=>{
   // console.log('layoutData: '+layoutData[0]['field1']);
   // console.log('layoutData: '+layoutData[0][0]);
   // console.log('layoutData: '+typeof(layoutData));
-  var data=new Float32Array(256*256);
+  var data=new Float32Array(resolution*resolution);
   selection = getSelection();
   selection = Array.from(new Set(selection));
   console.log('selection'+selection.length)
   if(f==true)
     expData = preProcessExpData(expData)
     for (const select of selection) {
+      var mergedMap = mergeLayoutExpData(b,a,select);
     if(selection[selection.length-1]==select){
       console.log('selection: '+select);
       lastIternation=1;
     }
     console.log('select '+ select)
-    layoutDataMap = getExpData1(expData,layoutData,select);
-    console.log('size: '+layoutDataMap['SULT4A1'])
-    var keys = Object.keys(layoutDataMap);
+    //layoutDataMap = getExpData1(expData,layoutData,select);
+    //console.log('size: '+layoutDataMap['SULT4A1'])
+    var keys = Object.keys(mergedMap);
     len=keys.length;
       geneName = new Array(len);
       layoutDataX = new Float32Array(len);
@@ -869,7 +1116,7 @@ generate.addEventListener('click', async ()=>{
       expressionData = new Float32Array(len);
       nameIndex=0,xIndex=0,yIndex=0,expIndex=0;
       for(var i=0;i<keys.length;i++){
-        var row = layoutDataMap[keys[i]];
+        var row = mergedMap[keys[i]];
         //console.log('row: '+row);
         geneName[nameIndex++]=row[0];
         layoutDataX[xIndex++]=0.9*row[1]+0.05;
@@ -880,7 +1127,7 @@ generate.addEventListener('click', async ()=>{
     console.log('layoutx: '+layoutDataX.length)
     console.log('layouty: '+layoutDataY.length)
     console.log('expression data: '+expressionData.length)
-    var outcome=await main(expressionData, layoutDataX, layoutDataY, geneName, sigma, showGene, scaleMin, scaleMax, selection.length, lastIternation, data) as unknown as Float32Array;
+    var outcome=await main(expressionData, layoutDataX, layoutDataY, geneName, sigma, showGene, scaleMin, scaleMax, resolution, selection.length, lastIternation, data) as unknown as Float32Array;
     await convertPromiseToFloat32Array(outcome).then((d)=>{
       data=d;
       console.log('final data: '+data[0]);
@@ -891,7 +1138,12 @@ generate.addEventListener('click', async ()=>{
     lastIternation=0;
 }
 console.log('im gere')
+const endTime = new Date().getTime();
+console.log('end time: '+endTime)
+console.log('Time taken: '+(endTime-startTime))
+console.log('heatmap data'+contourData)
 //drawPlot(data,layoutDataX,layoutDataY,expressionData,geneName,scaleMin,scaleMax,showGene)
+});
 })
 
 async function sleep(ms) {
@@ -899,3 +1151,4 @@ async function sleep(ms) {
 }
 
 // checkFlag();
+

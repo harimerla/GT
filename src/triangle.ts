@@ -59,43 +59,48 @@ export const shaders = () => {
     var r=vec4<f32>(colors[index],colors[index+1],colors[index+2],colors[index+3]);
     return r;
   }
-  @compute @workgroup_size(4)
+  @compute @workgroup_size(16)
   fn main(@builtin(global_invocation_id) id: vec3<u32>){
 
     var k = id.x;
-    k=4*k;
+    for(var t=k;t<id.x+16;t++){
+      var resolution=u32(params[5]);
+      var n = arrayLength(&x);
+      var m = arrayLength(&y);
+      var value:f32=0;
+      var i:u32=0;
+      var xIndex=f32(t/(resolution));
+      var yIndex=f32(t%(resolution));
+      xIndex = xIndex/f32(resolution);
+      yIndex = yIndex/f32(resolution);
+      var sigma: f32 = params[0];
+      for(i=0;i<n;i=i+1){
+        var square_dist = (x[i]-xIndex)*(x[i]-xIndex)+(y[i]-yIndex)*(y[i]-yIndex);
+        square_dist = square_dist*sigma;
+        value=value+weight[i]/(square_dist+1);
+      }
+      // data[k]=value;
+      // data[k+1]=value;
+      // data[k+2]=value;
+      // data[k+3]=value;
 
-    var n = arrayLength(&x);
-    var m = arrayLength(&y);
-    var value:f32=0;
-    var i:u32=0;
-    var xIndex=f32(k/(256*4));
-    var yIndex=f32((k/4)%(256));
-    xIndex = xIndex/256;
-    yIndex = yIndex/256;
-    var sigma: f32 = params[0];
-    for(i=0;i<n;i=i+1){
-      var square_dist = (x[i]-xIndex)*(x[i]-xIndex)+(y[i]-yIndex)*(y[i]-yIndex);
-      square_dist = square_dist*sigma;
-      value=value+weight[i]/(square_dist+1);
+      // var minRange=0.0;
+      // var maxRange=0.3;
+      // if(value<minRange){
+      //   value=0;
+      // }
+      // else if(value>maxRange){
+      //   value=1;
+      // }
+      // else{
+      //   value=(value-minRange)/(maxRange-minRange);
+      // }
+      dataOnly[t]=dataOnly[t]+value;
+      var sampleSize=params[3];
+      if(params[4]==1){
+        dataOnly[i]=dataOnly[i]/sampleSize;
+      }
     }
-    data[k]=value;
-    data[k+1]=value;
-    data[k+2]=value;
-    data[k+3]=value;
-
-    // var minRange=0.0;
-    // var maxRange=0.3;
-    // if(value<minRange){
-    //   value=0;
-    // }
-    // else if(value>maxRange){
-    //   value=1;
-    // }
-    // else{
-    //   value=(value-minRange)/(maxRange-minRange);
-    // }
-    dataOnly[k/4]=dataOnly[k/4]+value;
   }
 
   @compute @workgroup_size(1)
@@ -104,8 +109,9 @@ export const shaders = () => {
       return;
     }
     var k=id.x;
-    var min=255.0;
-    var max=-255.0;
+    var resolution=params[5];
+    var min=resolution;
+    var max=-resolution;
     var minRange=f32(params[1]);
     var maxRange=f32(params[2]);
     minRange=(minRange+10.0)/20.0;
