@@ -33,6 +33,7 @@
   <script src = "js/bootstrap-multiselect.min.js"></script>
   <script src="js/popper.min.js"></script>
   <script src="js/multiselect-dropdown.js" ></script>
+  <script src="js/plotly-latest.min.js"></script>
   <!-- <link rel="stylesheet" href="css/multi-select-tag.css" type="text/css"> -->
     </script>
 <script defer src="main.js"></script></head>
@@ -166,6 +167,7 @@
                           </script> -->
                         <a href="#" id="a1" style="display:none"></a>
                         <a href="#" id="a2" style="display:none"></a>
+                        <a href="#" id="a3" style="display:none"></a>
                     </div>
                     <br>
                     <div id="pixelDiv">
@@ -202,16 +204,134 @@
             <div class="col-12 text-center">
                 <div id="myGrid" class="ag-theme-alpine" style="width: 800px; overflow: auto;"></div>
                 <br><br><br><br>
-                <div id="canvas-div" style="width: 720; height: 720;"></div>
-                <div id="download image div1" style="margin-left: 200px;">
-                    <input type="button" class="btn btn-primary" value="Download Image" id="download-image1" style="display:none">
-                </div>
-                <div id="canvas-contour-div" style="width: 720; height: 720;"></div>
-                <div id="download image div2" style="margin-left: 200px;">
-                    <input type="button" class="btn btn-primary" value="Download Image" id="download-image2" style="display:none">
-                </div>
+                <div id="navDiv">
+                    <nav>
+                        <div class="nav nav-tabs" id="nav-tab" role="tablist">
+                          <button class="nav-link active" id="nav-GT-tab" data-bs-toggle="tab" data-bs-target="#nav-home" type="button" role="tab" aria-controls="nav-home" aria-selected="true">Specific</button>
+                          <button class="nav-link" id="nav-Sigma-tab" data-bs-toggle="tab" data-bs-target="#nav-profile" type="button" role="tab" aria-controls="nav-profile" aria-selected="false">Sigma</button>
+                          <button class="nav-link" id="nav-Avg-tab" data-bs-toggle="tab" data-bs-target="#nav-contact" type="button" role="tab" aria-controls="nav-contact" aria-selected="false">Tab1</button>
+                        </div>
+                      </nav>
+                      <div class="tab-content" id="nav-tabContent">
+                        <div class="tab-pane fade show active" id="nav-GT" role="tabpanel" aria-labelledby="nav-GT-tab">
+                            <div id="canvas-div" style="width: 720; height: 720;"></div>
+                            <div id="download image div1" style="margin-left: 200px;">
+                                <input type="button" class="btn btn-primary" value="Download Image" id="download-image1" style="display:none">
+                            </div>
+                            <div id="canvas-contour-div" style="width: 720; height: 720;"></div>
+                            <div id="download image div2" style="margin-left: 200px;">
+                                <input type="button" class="btn btn-primary" value="Download Image" id="download-image2" style="display:none">
+                            </div>
+                            </div>
+                        <div class="tab-pane fade" id="nav-Sigma" role="tabpanel" aria-labelledby="nav-Sigma-tab">
+                            <div id="canvas-div1" style="width: 720; height: 720;"></div>
+                            <div id="download image div3" style="margin-left: 200px;">
+                                <input type="button" class="btn btn-primary" value="Download Image" id="download-image3" style="display:none">
+                            </div>
+                        </div>
+                        <div class="tab-pane fade" id="nav-Avg" role="tabpanel" aria-labelledby="nav-Avg-tab">
+                            <div id="canvas-div01" style="width: 720; height: 720;"></div>
+                            <br>
+                            <div id="bar-chart-exp"></div>
+                            <br>
+                            <div id="bar-chart-output"></div>
+                            <div id="canvas-div02" style="width: 720; height: 720;"></div>
+                            <div id="canvas-div03" style="width: 720; height: 720;"></div>
+                            <div id="canvas-div04" style="width: 720; height: 720;"></div>
+                        </div>
+                    </div>
+                      </div>
                 </div>
                 <br>
+                <script type="module">
+                    var graphDiv = document.getElementById('canvas-div01');
+                    graphDiv.addEventListener('mouseenter', ()=>{
+                        graphDiv.on('plotly_selected',function(eventData){
+                        console.log(eventData);
+                        // console.log(eventData.currentTarget.data[1].selectedpoints)
+                        // console.log(eventData.currentTarget.data[1].selectedpoints[0].x)
+                        var pt=[]
+                        var ptx=[], pty=[], pttext=[], ptout=[], ptexp=[], ptbase=[], ptcolorexp=[], ptcolorGT=[], ptoutText=[], ptexpText=[]
+                        eventData.points.forEach(function(pt) {
+                            ptx.push(pt.x);
+                            pty.push(pt.y);
+                            var currOut = pt.data.args.z[~~(pt.y)][~~(pt.x)]
+                            var currExp = pt.data.args.exp[pt.text]
+                            ptout.push(currOut)
+                            ptoutText.push(Number(currOut).toFixed(2))
+                            pttext.push(pt.text);
+                            ptexp.push(currExp)
+                            ptexpText.push(Number(currExp).toFixed(2))
+                            // ptbase.push(currOut<0?currOut:0)
+                            ptcolorexp.push(currExp<0?'blue':'orange')
+                            ptcolorGT.push(currOut<0?'blue':'orange')
+                            console.log(pt.x);
+                            console.log(pt.y);
+                            console.log(pt.text);
+                        });
+                        var barTraceOuput = [{
+                            x: pttext,
+                            y: ptout,
+                            type: 'bar',
+                            base: 0,
+                            text: ptoutText.map(String),
+                            textposition: 'auto',
+                            hoverinfo: 'none',
+                            width: 0.5,
+                            // text: pttext,
+                            marker: {color: ptcolorGT}
+                        }];
+                        var barTraceExp = [{
+                            x: pttext,
+                            y: ptexp,
+                            type: 'bar',
+                            base: 0,
+                            text: ptexpText.map(String),
+                            textposition: 'auto',
+                            hoverinfo: 'none',
+                            width: 0.5,
+                            // text: pttext,
+                            marker: {color: ptcolorexp}
+                        }];
+                        var plotLayout = {
+                            width:512,
+                            height:512,
+                            showlegend: true,
+                            legend: {
+                                x: 0.8,
+                                // xanchor: 'right',
+                                y: 1.05,
+                                bgcolor: 'E2E2E2'
+                            },
+                            font:{
+                                color:"black",
+                                size:12,
+                            }
+                            }
+                        var barsLayout1 = JSON.parse(JSON.stringify(plotLayout));
+                        barsLayout1['title']={
+                            text:'<br>Gene vs Exp',
+                            font: {
+                            size: 24,
+                            color: '#7f7f7f'
+                            },
+                            xref: 'paper',
+                        }
+                        var barsLayout2 = JSON.parse(JSON.stringify(plotLayout));
+                        barsLayout2['title']={
+                            text:'<br>Gene vs GT',
+                                font: {
+                                size: 24,
+                                color: '#7f7f7f'
+                                },
+                                xref: 'paper',
+                        }
+                        
+                        Plotly.newPlot('bar-chart-exp',barTraceExp, barsLayout1);
+                        Plotly.newPlot('bar-chart-output',barTraceOuput, barsLayout2);
+                        })
+                    })
+                </script>
                 <canvas id="webgpu-canvas" class="img-fluid" width="720" height="512" style="display:none"></canvas>
                 </div>
             <div class="col-12 alert alert-danger" id="no-webgpu" style="display:none;">
