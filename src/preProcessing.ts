@@ -66,16 +66,22 @@ function getChartState (data, layout) {
   
 export function mergeLayoutExpData(layoutMap: Map<string,any>, expMap:Map<string,any>, select: string){
   var map = new Map<string,any>();
+  console.log(layoutMap['cacng3'])
   var genes = getGenes();
-  console.log(layoutMap)
+  console.log('inside mergeLayout')
+  console.log(layoutMap.size)
   console.log(genes)
-  console.log(expMap['TCGA-02-0004-01'])
+  console.log(expMap)
   // expMap[select]=expMap['TCGA-02-0004-01'];
   for(var key of Object.keys(layoutMap)){
     if(key in expMap[select]){
       var row = layoutMap[key];
-      row.push(expMap[select][row[0]])
+      if(row.length==4)
+        row[3]=expMap[select][row[0]]
+      else
+        row.push(expMap[select][row[0]])
       map[row[0]]=row;
+      // console.log(row);
     }
   }
   return map;
@@ -266,14 +272,14 @@ export async function getAGPLOT(selection: string[]){
   new Grid(gridDiv, gridOptions);
   gridDiv.addEventListener('click',()=>{
     const selectedRows = gridOptions.api.getSelectedRows();
-    console.log(selectedRows)
-    console.log(selectedRows[selectedRows.length-1]['SampleID'])
+    // console.log(selectedRows)
+    // console.log(selectedRows[selectedRows.length-1]['SampleID'])
     //selection.push(selectedRows[selectedRows.length-1]['SampleID'])
     selection=[]
     for(var row of selectedRows){
       selection.push(row['SampleID'])
     }
-    console.log('updated selection: '+selection)
+    // console.log('updated selection: '+selection)
     setSelection(selection)
     //selection=temp.slice();
     //console.log(selection)

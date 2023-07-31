@@ -51,105 +51,94 @@ export const shaders = () => {
   @binding(5) @group(0) var myTexture: texture_2d<f32>;
   @binding(6) @group(0) var<storage, read_write> params: array<f32>;
   @binding(7) @group(0) var<storage, read_write> dataOnly: array<f32>;
+  @binding(8) @group(0) var<storage, read_write> sigmaArray: array<f32>;
   
-
-  fn getColor(value: f32)->vec4<f32>{
-    var size=f32(arrayLength(&colors)/4-1);
-    var index=i32(round(4*value));
-    var r=vec4<f32>(colors[index],colors[index+1],colors[index+2],colors[index+3]);
-    return r;
-  }
   @compute @workgroup_size(16)
   fn main(@builtin(global_invocation_id) id: vec3<u32>){
 
     var k = id.x;
-    for(var t=k;t<id.x+16;t++){
-      var resolution=u32(params[5]);
-      var n = arrayLength(&x);
-      var m = arrayLength(&y);
+    var n = arrayLength(&x);
+    var m = arrayLength(&y);
+    var resolution=u32(params[5]);
+    var selectionLength = params[6];
+    // for(var t=k;t<id.x+21;t++){
+    var t=k;
       var value:f32=0;
       var i:u32=0;
-      var xIndex=f32(t/(resolution));
-      var yIndex=f32(t%(resolution));
+      var c=t;
+      c=c%(resolution*resolution);
+      var xIndex=f32(c/(resolution));
+      var yIndex=f32(c%(resolution));
       xIndex = xIndex/f32(resolution);
       yIndex = yIndex/f32(resolution);
       var sigma: f32 = params[0];
+      // var j = t/(resolution*resolution);
       for(i=0;i<n;i=i+1){
         var square_dist = (x[i]-xIndex)*(x[i]-xIndex)+(y[i]-yIndex)*(y[i]-yIndex);
-        square_dist = square_dist*sigma;
-        value=value+weight[i]/(square_dist+1);
+        for(var j=0;j<20;j++){
+          var square_dist_updated = square_dist*sigmaArray[j];
+          // square_dist = square_dist*sigma;
+          dataOnly[i32(resolution*resolution)*j+i32(t)] = dataOnly[i32(resolution*resolution)*j+i32(t)]+weight[i]/((square_dist_updated+1)*selectionLength);
+        }
       }
-      // data[k]=value;
-      // data[k+1]=value;
-      // data[k+2]=value;
-      // data[k+3]=value;
-
-      // var minRange=0.0;
-      // var maxRange=0.3;
-      // if(value<minRange){
-      //   value=0;
+      // dataOnly[t]=dataOnly[t]+value/selectionLength;
+      // var sampleSize=params[3];
+      // if(params[4]==1){
+      //   dataOnly[t]=dataOnly[t]/sampleSize;
+      //   // for(var j=0;j<20;j++){
+      //   //   dataOnly[i32(resolution*resolution)*j+i32(t)]=dataOnly[i32(resolution*resolution)*j+i32(t)]/sampleSize;
+      //   // }
       // }
-      // else if(value>maxRange){
-      //   value=1;
-      // }
-      // else{
-      //   value=(value-minRange)/(maxRange-minRange);
-      // }
-      dataOnly[t]=dataOnly[t]+value;
-      var sampleSize=params[3];
-      if(params[4]==1){
-        dataOnly[i]=dataOnly[i]/sampleSize;
-      }
-    }
+    
   }
 
   @compute @workgroup_size(1)
   fn normalize(@builtin(global_invocation_id) id: vec3<u32>){
-    if(params[0]==0){
-      return;
-    }
-    var k=id.x;
-    var resolution=params[5];
-    var min=resolution;
-    var max=-resolution;
-    var minRange=f32(params[1]);
-    var maxRange=f32(params[2]);
-    minRange=(minRange+10.0)/20.0;
-    maxRange=(maxRange+10.0)/20.0;
-    var len = arrayLength(&dataOnly);
-    for(var i:u32=0;i<len;i++){
-      if(min>dataOnly[i]){
-        min=dataOnly[i];
-      }
-      if(max<dataOnly[i]){
-        max=dataOnly[i];
-      }
-    }
-    var v:i32;
-    for(var i:u32=0;i<len;i+=4){
-      data[i]=(data[i]-min)/(max-min);
-      if(data[i]<minRange){
-        data[i]=0;
-      }
-      else if(data[i]>maxRange){
-        data[i]=1;
-      }
-      else{
-        data[i]=(data[i]-minRange)/(maxRange-minRange);
-      }
-      data[i]=data[i]*f32(arrayLength(&colors)/4-1)+0;
-      v=16*i32(data[i]/4);
-      data[i]=colors[v];
-      data[i+1]=colors[v+1];
-      data[i+2]=colors[v+2];
-      data[i+3]=255;
-    }
-    for(var i:u32=0;i<arrayLength(&dataOnly);i++){
-      var sampleSize=params[3];
-      if(params[4]==1){
-        dataOnly[i]=dataOnly[i]/sampleSize;
-      }
-    }
+  //   if(params[0]==0){
+  //     return;
+  //   }
+  //   var k=id.x;
+  //   var resolution=params[5];
+  //   var min=resolution;
+  //   var max=-resolution;
+  //   var minRange=f32(params[1]);
+  //   var maxRange=f32(params[2]);
+  //   minRange=(minRange+10.0)/20.0;
+  //   maxRange=(maxRange+10.0)/20.0;
+  //   var len = arrayLength(&dataOnly);
+  //   for(var i:u32=0;i<len;i++){
+  //     if(min>dataOnly[i]){
+  //       min=dataOnly[i];
+  //     }
+  //     if(max<dataOnly[i]){
+  //       max=dataOnly[i];
+  //     }
+  //   }
+  //   var v:i32;
+  //   for(var i:u32=0;i<len;i+=4){
+  //     data[i]=(data[i]-min)/(max-min);
+  //     if(data[i]<minRange){
+  //       data[i]=0;
+  //     }
+  //     else if(data[i]>maxRange){
+  //       data[i]=1;
+  //     }
+  //     else{
+  //       data[i]=(data[i]-minRange)/(maxRange-minRange);
+  //     }
+  //     data[i]=data[i]*f32(arrayLength(&colors)/4-1)+0;
+  //     v=16*i32(data[i]/4);
+  //     data[i]=colors[v];
+  //     data[i+1]=colors[v+1];
+  //     data[i+2]=colors[v+2];
+  //     data[i+3]=255;
+  //   }
+  //   for(var i:u32=0;i<arrayLength(&dataOnly);i++){
+  //     var sampleSize=params[3];
+  //     if(params[4]==1){
+  //       dataOnly[i]=dataOnly[i]/sampleSize;
+  //     }
+  //   }
   }
   
   `

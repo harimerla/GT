@@ -9,19 +9,31 @@ import { DataFrame } from "pandas-js";
 import {drawPlot} from './plot'
 import {exportToHtml,getExpData1, getAGPLOT, preProcessExpData, getSelection,mergeLayoutExpData} from './preProcessing'
 import {loadPlotData,loadLayoutData, loadExpData, getExp, getXandY, getGenes,loadGeneRelation,getGeneReationMapName} from './rest'
+import {drawSpecificPlot,drawAllSigmaPlot,drawTab1Plot,changeSigma,rotate90DegreesCounterClockwise} from './plotlyCode'
+import {extractBarPlot} from './plotly_events'
 // import RangeSlider from '@spreadtheweb/multi-range-slider';
 //import * as csvtojson from 'csvtojson';
 const csvtojson=require("csvtojson");
-var Plotly = require('plotly.js/lib/core');
-Plotly.register([
-  require('plotly.js/lib/pie'),
-  require('plotly.js/lib/choropleth'),
-  require('plotly.js/lib/heatmap'),
-  require('plotly.js/lib/scatter'),
-  require('plotly.js/lib/contour'),
-]);
+// var Plotly = require('plotly.js/lib/core');
+// import * as Plotly from "plotly.js";
+// var Plotly = require('../dist/js/plotly-latest.min.js')
+import * as Plotly from 'plotly.js-dist';
+// var Plotly = require('plotly.js/lib/core');
+// Plotly.register([
+//   require('plotly.js/lib/pie'),
+//   require('plotly.js/lib/choropleth'),
+//   require('plotly.js/lib/heatmap'),
+//   require('plotly.js/lib/scatter'),
+//   require('plotly.js/lib/contour'),
+//   require('plotly.js/lib/filter'),
+//   require('plotly.js/lib/groupby'),
+//   require('plotly.js/lib/bar'),
+//   require('plotly.js/src/plot_api'),
+// ]);
 
-module.exports = Plotly;
+// module.exports = Plotly;
+// import * as $ from '../dist/js/jquery-3.5.1.min.js';
+import $ from '../dist/js/jquery-3.5.1.min.js';
 
 function on<T extends HTMLElement, K extends keyof HTMLElementEventMap>(
   element: T,
@@ -31,6 +43,19 @@ function on<T extends HTMLElement, K extends keyof HTMLElementEventMap>(
   element.addEventListener(event, handler);
 }
 
+var allsigsigdata;
+
+export async function getAllSigData(){
+  return allsigsigdata;
+}
+async function normalizeAllSigmas(data: Float32Array, resolution: number){
+  var allSigNormData = [];
+  for(var j=0;j<20;j++){
+    var newData = data.slice(0,resolution*resolution);
+    allSigNormData.push(convert1DArrayTo2D(newData, resolution, resolution))
+  }
+  return allSigNormData;
+}
 
 async function convertPromiseToFloat32Array(outcome) {
   try {
@@ -46,21 +71,7 @@ async function convertPromiseToFloat32Array(outcome) {
   }
 }
 
-function rotate90DegreesCounterClockwise(array) {
-  const rows = array.length;
-  const cols = array[0].length;
-  const rotatedArray = [];
 
-  for (let col = cols - 1; col >= 0; col--) {
-    const newRow = [];
-    for (let row = 0; row < rows; row++) {
-      newRow.push(array[row][col]);
-    }
-    rotatedArray.push(newRow);
-  }
-
-  return rotatedArray;
-}
 
 
 function getImageDataFromImage(image: HTMLImageElement): Uint8ClampedArray {
@@ -210,22 +221,12 @@ function normalize(arr: Float32Array){
   return temp;
 }
 
-async function main(expressionData: Float32Array, layoutDataX: Float32Array, layoutDataY: Float32Array, geneName: Float32Array, sigmaa=1, showGene: boolean, scaleMin: number, scaleMax: number, resolution: number, sampleSize: number, lastIternation:number,  data: Float32Array) {
+async function main(expressionData: Float32Array, layoutDataX: Float32Array, layoutDataY: Float32Array, geneName: Float32Array, sigmaa=1, showGene: boolean, scaleMin: number, scaleMax: number, resolution: number, sampleSize: number, lastIternation:number,  data: Float32Array, selectionLen:number, summedExp:Map<String, number>) {
   var adapter = await navigator.gpu.requestAdapter();
   var device = await adapter.requestDevice();
 
   var canvas = document.getElementById("webgpu-canvas") as HTMLCanvasElement;
   var context = canvas.getContext("webgpu");
-
-  var square = CubeDataGene().square;
-  var cubeBuff = device.createBuffer({
-    size: square.byteLength,
-    usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
-    mappedAtCreation: true 
-  });
-
-  new Float32Array(cubeBuff.getMappedRange()).set(square);
-  cubeBuff.unmap();
 
   var depthTexture = device.createTexture({
     size: {width: canvas.width, height: canvas.height},
@@ -246,28 +247,6 @@ async function main(expressionData: Float32Array, layoutDataX: Float32Array, lay
     } as GPUSamplerDescriptor);
   var width=resolution, height=resolution;
   var imageee;
-  let cubeTexture: GPUTexture;
-    {
-      const img = document.createElement('img');
-      const response: Response = await fetch('images/dog.webp');
-      const blob: Blob = await response.blob();
-
-      const imageBitmap = await createImageBitmap(blob);
-      console.log('image: '+imageBitmap.height+" "+imageBitmap.width);
-      console.log('canvas'+canvas.height+" "+canvas.width);
-  
-      cubeTexture = device.createTexture({
-        size: [width,height, 1],
-        //size: [64,64,1],
-        format: 'rgba8unorm',
-        usage:
-          GPUTextureUsage.TEXTURE_BINDING |
-          GPUTextureUsage.COPY_DST |
-          GPUTextureUsage.RENDER_ATTACHMENT,
-      });
-      console.log('dimension'+cubeTexture.width);
-      imageee=imageBitmap;
-    }
   
     // Load the default colormap and upload it
   var colormapImage = new Image();
@@ -275,39 +254,11 @@ async function main(expressionData: Float32Array, layoutDataX: Float32Array, lay
   colormapImage.id = 'image';
   await colormapImage.decode();
   const imageBitmap = await createImageBitmap(colormapImage);
-  document.getElementById("no-webgpu").appendChild(colormapImage);
   var colorTexture = device.createTexture({
     size: [imageBitmap.width, imageBitmap.height, 1],
     format: "rgba8unorm",
     usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST | GPUTextureUsage.RENDER_ATTACHMENT,
   });
-  
-
-    var bindingGroupLayout = device.createBindGroupLayout({
-      entries:[{
-        binding: 0,
-        visibility: GPUShaderStage.FRAGMENT,
-        sampler: {}
-      } as GPUBindGroupLayoutEntry,{
-        binding: 1,
-        visibility: GPUShaderStage.FRAGMENT,
-        texture:{}
-      } as GPUBindGroupLayoutEntry]
-    });
-  
-    var uniformBindGroup = device.createBindGroup({
-      layout: bindingGroupLayout,
-      entries: [
-        {
-          binding: 0,
-          resource: sampler
-        },
-        {
-          binding: 1,
-          resource: cubeTexture.createView()
-        }
-      ]
-    });
   
   var computeBindGroupLayouts = device.createBindGroupLayout({
     label: 'Compute Binding Group Layout',
@@ -343,6 +294,10 @@ async function main(expressionData: Float32Array, layoutDataX: Float32Array, lay
       binding: 7,
       visibility: GPUShaderStage.COMPUTE,
       buffer: {type: 'storage'}
+    },{
+      binding: 8,
+      visibility: GPUShaderStage.COMPUTE,
+      buffer: {type: 'storage'}
     }]
   })
 
@@ -355,7 +310,7 @@ async function main(expressionData: Float32Array, layoutDataX: Float32Array, lay
 
   // var dataValues = new Float32Array(resolution*resolution);
   var dataValues = data;
-  console.log('just checking : '+data[0])
+  console.log('just checking : '+data.length)
   var dataValuesBuff = device.createBuffer({
     label: 'data values only buffer',
     size: dataValues.byteLength,
@@ -369,8 +324,12 @@ async function main(expressionData: Float32Array, layoutDataX: Float32Array, lay
   console.log(x.length+' '+x[0]);
   console.log(y.length+' '+y[0]);
   console.log(weight.length+' '+weight[0]);
+  console.log(geneName[0])
   var sigmaMap = {0:0,0.05:10000, 0.1:9000,0.15:8500, 0.2:8000,0.25:7500,0.3:7000,0.35:6500,0.4:6000,0.45:5500, 0.5:5000,0.55:3500,0.6:2000,0.65:1500, 0.7:1000,0.75:750, 0.8:500,0.85:250, 0.9:100,0.95:75,1:50}
-  var params = new Float32Array([sigmaMap[sigmaa],scaleMin,scaleMax, sampleSize, lastIternation,resolution]);
+  var sigmaArray = new Float32Array([0,100000,10000,8500,8000,7500,7000,6500,6000,5500,5000,3500,2500,2000,1500,950,700,450,300,150,100]);
+  var sigmaIndexMap = {0:0,0.05:1, 0.1:2,0.15:3, 0.2:4,0.25:5,0.3:6,0.35:7,0.4:8,0.45:9, 0.5:10,0.55:11,0.6:12,0.65:13, 0.7:14,0.75:15, 0.8:16,0.85:17, 0.9:18,0.95:19,1:20}
+  // var params = new Float32Array([sigmaMap[sigmaa],scaleMin,scaleMax, sampleSize, lastIternation,resolution]);
+  var params = new Float32Array([sigmaMap[sigmaa],scaleMin,scaleMax, sampleSize, lastIternation,resolution,selectionLen]);
   //var params = new Float32Array([sigmaa,scaleMin,scaleMax]);
   //sigma.fill([sigmaa,scaleMin,scaleMax],0,3);
   // var x = CubeDataGene().x;
@@ -407,6 +366,12 @@ async function main(expressionData: Float32Array, layoutDataX: Float32Array, lay
     usage: GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST,
   });
 
+  var sigmaArrayBuff = device.createBuffer({
+    label: 'sigmaArray buffer',
+    size: sigmaArray.byteLength,
+    usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.COPY_SRC | GPUBufferUsage.STORAGE,
+  })
+
   var colormap = require('colormap');
   var color = colormap({
     colormap: 'jet',
@@ -434,6 +399,7 @@ async function main(expressionData: Float32Array, layoutDataX: Float32Array, lay
   device.queue.writeBuffer(colomapBuff,0,flatColor);
   device.queue.writeBuffer(paramsBuff, 0, params);
   device.queue.writeBuffer(dataValuesBuff, 0, dataValues);
+  device.queue.writeBuffer(sigmaArrayBuff, 0, sigmaArray);
 
   var computeUniformBindGroup = device.createBindGroup({
     label: 'Compute Binding Group',
@@ -462,6 +428,9 @@ async function main(expressionData: Float32Array, layoutDataX: Float32Array, lay
     },{
       binding: 7,
       resource: {buffer: dataValuesBuff}
+    },{
+      binding: 8,
+      resource: {buffer: sigmaArrayBuff}
     }]
   })
   
@@ -481,29 +450,7 @@ async function main(expressionData: Float32Array, layoutDataX: Float32Array, lay
       module: device.createShaderModule({code: shaders().compute}),
       entryPoint: 'normalize'
     }
-  })
-  
-  var renderPipeline = device.createRenderPipeline({
-    layout : device.createPipelineLayout({bindGroupLayouts: [bindingGroupLayout]}),
-    vertex: {
-      module: device.createShaderModule({code: shaders().vertex}),
-      entryPoint: 'main',
-      buffers: [{
-        arrayStride: 6*4,
-        attributes:[
-          {format: 'float32x4', offset:0, shaderLocation: 0},
-          {format: 'float32x2', offset:16, shaderLocation: 1}]
-      }]
-    } as GPUVertexState,
-    fragment:{
-      module: device.createShaderModule({code: shaders().fragment}),
-      entryPoint: 'main',
-      targets: [{format: 'bgra8unorm'}]
-    } as GPUFragmentState,
-    depthStencil: {format: "depth24plus-stencil8", depthWriteEnabled: true, depthCompare: "less"},
-    primitive:{topology:"triangle-strip"},
-  });
-
+  }) 
   var renderPassDesc = {
     colorAttachments: [{    
         view: undefined,
@@ -543,14 +490,6 @@ pass.dispatchWorkgroups(width*height/16);
 
 pass.end();
 console.log('height: '+height+" width+"+width+" image bytelength: "+zeroimg.byteLength)
-// device.queue.submit([encoder.finish()]);
-
-// encoder = device.createCommandEncoder({label: 'Normalization Encoder'});
-// pass = encoder.beginComputePass({label: 'Compute Pass for Normalization'});
-// pass.setPipeline(computePipelineNormalize);
-// pass.setBindGroup(0, computeUniformBindGroup);
-// pass.dispatchWorkgroups(1);
-// pass.end();
 
 encoder.copyBufferToBuffer(texBuff,0,resultBuff, 0, resultBuff.size);
 encoder.copyBufferToBuffer(dataValuesBuff,0,dataOnlyResultBuff, 0, dataOnlyResultBuff.size);
@@ -561,13 +500,13 @@ device.queue.submit([encoder.finish()]);
 await resultBuff.mapAsync(GPUMapMode.READ);
 await dataOnlyResultBuff.mapAsync(GPUMapMode.READ);
 const result = new Float32Array(resultBuff.getMappedRange().slice(0,resultBuff.size));
-const dataOnlyResult = new Float32Array(dataOnlyResultBuff.getMappedRange().slice(0,resultBuff.size));
+const dataOnlyResult = new Float32Array(dataOnlyResultBuff.getMappedRange().slice(0,dataOnlyResultBuff.size));
 console.log('data only result: '+dataOnlyResult);
 //console.log('reslut: '+result);
 resultBuff.unmap();
 
 
-// const file = new Blob([result.toString()], {type: 'text/plain;charset=utf-8'});
+// const file = new Blob([dataOnlyResult.toString()], {type: 'text/plain;charset=utf-8'});
 // const url = URL.createObjectURL(file);
 // const link = document.createElement('a');
 // link.href = url;
@@ -586,36 +525,25 @@ for(var i=0;i<dataOnlyResult.length;i++){
 console.log('min: '+min+' max: '+max);
 
 while(true){
-  await animationFrame();
-
-  renderPassDesc.colorAttachments[0].view = context.getCurrentTexture().createView();
-  var commandEncoder = device.createCommandEncoder();
-  var renderPass = commandEncoder.beginRenderPass(renderPassDesc);
-
-  renderPass.setPipeline(renderPipeline);
-  renderPass.setVertexBuffer(0,cubeBuff);
-  renderPass.setBindGroup(0,uniformBindGroup);
-
-  const htmlImage = await convertFloat32ArrayToHTMLImageElement(result,width,height);
-  const imageBitmap = await createImageBitmap(htmlImage, {resizeWidth:width, resizeHeight:height});
-
-  // document.getElementById('canvas-div').on('plotly_selected', function(eventData) {
-  //   var selectedPoints = eventData.points;
-  
-  //   // Do something with the selected points
-  //   console.log('Selected Points:', selectedPoints);
-  // });
-  // device.queue.copyExternalImageToTexture(
-  //   {source:  imageBitmap},
-  //   { texture: cubeTexture},
-  //   [imageBitmap.width, imageBitmap.height,1]
-  // );
-  var converted2DData = convert1DArrayTo2D(dataOnlyResult,resolution,resolution);
-    console.log('inside draw plot')
+  console.log('lenght of the data: '+dataOnlyResult.length)
+  console.log('dimenstions '+resolution*resolution*sigmaIndexMap[sigmaa]+" "+(resolution*resolution*sigmaIndexMap[sigmaa]+resolution*resolution))
+  var sliceIndeces = [resolution*resolution*sigmaIndexMap[sigmaa],(resolution*resolution*sigmaIndexMap[sigmaa]+resolution*resolution)];
+  console.log('sliceindecies: '+sliceIndeces)
+  console.log('values: '+dataOnlyResult.slice(sliceIndeces[0],sliceIndeces[0]+5))
+  var converted2DData = convert1DArrayTo2D(dataOnlyResult.slice(sliceIndeces[0],sliceIndeces[1]),resolution,resolution);
+  console.log('inside draw plot')
   // console.log('normalize: '+x);
   // console.log('normalize: '+y);
   //console.log('2d array'+convert1DArrayTo2D(dataOnlyResult,resolution,resolution))
   var finalData = rotate90DegreesCounterClockwise(converted2DData).reverse();
+  // const file = new Blob([finalData.toString()], {type: 'text/plain;charset=utf-8'});
+  // const url = URL.createObjectURL(file);
+  // const link = document.createElement('a');
+  // link.href = url;
+  // link.download = 'filename.txt';
+  // document.body.appendChild(link);
+  // link.click();
+  // console.log('output'+result[result.length-1]);
   heatMapdata = [{
     z: finalData,
     //z: finalData,
@@ -628,18 +556,18 @@ while(true){
     name: 'heatmap',
     zmin: scaleMin,
     zmax: scaleMax
-
   },{
     x: normalize(x),
     y: normalize(y),
-    // z: expressionData,
+    z: finalData,
     mode: 'markers+text',
     type: 'scatter',
     text: geneName,
     colorscale: 'Jet',
     hoverinfo:true,
     visible: 'legendonly',
-    name: 'Gene Name'}]
+    name: 'Gene Name',
+    args: {z:finalData, exp:summedExp}}]
   // },{
   //   name: 'Gene Relation',
   //   visible:'legendonly',
@@ -689,22 +617,51 @@ while(true){
       bgcolor: 'E2E2E2'
     },
     font:{
-      color:"white",
+      color:"black",
       size:12,
-    }
+    },
   }
   if(lastIternation==1){
-    Plotly.newPlot('canvas-div', heatMapdata, layout).then((gd)=>{Plotly.toImage(gd,{width:768,height:768}).then((url)=>{
-      var img = document.getElementById('a1') as HTMLAnchorElement;
-      img.href=url;
-    })});
-    Plotly.newPlot('canvas-contour-div', contourData, layout).then((gd)=>{Plotly.toImage(gd,{width:768,height:768}).then((url)=>{
-      var img = document.getElementById('a2') as HTMLAnchorElement;
-      img.href=url;
-    })});
+    drawSpecificPlot(heatMapdata, contourData, layout);
+    drawAllSigmaPlot(heatMapdata, layout);
+    drawTab1Plot(heatMapdata, layout)
+    // sliceIndeces = [resolution*resolution*sigmaIndexMap[0.1],(resolution*resolution*sigmaIndexMap[0.1]+resolution*resolution)];
+    // var stepsArray = []
+    // // sliceIndeces = [resolution*resolution*sigmaIndexMap[0.1],(resolution*resolution*sigmaIndexMap[0.1]+resolution*resolution)];
+    // for(var i=0;i<20;i++){
+    //   var arr = [
+    //     {
+    //       label: i/2,
+    //       method:'restyle',
+    //       args: ['z', rotate90DegreesCounterClockwise(convert1DArrayTo2D(dataOnlyResult.slice(resolution*resolution*i,resolution*resolution*(i+1)),resolution,resolution)).reverse()]
+    //     }
+    //   ]
+    //   stepsArray.push(arr);
+    // }
+    // console.log('stepsarray'+stepsArray)
+    // console.log('converted array: '+rotate90DegreesCounterClockwise(convert1DArrayTo2D(dataOnlyResult.slice(resolution*resolution*0,resolution*resolution*0+resolution*resolution),resolution,resolution)).reverse().length)
+    // layout['sliders']= [{
+    //   currentvalue: {
+    //     visible: true,
+    //     xanchor: 'right',
+    //     font: {size: 5, color: '#666'}
+    //   },
+    //   steps:
+    //   [{
+    //     label: 0,
+    //     method:'restyle',
+    //     // args: ['z', rotate90DegreesCounterClockwise(convert1DArrayTo2D(dataOnlyResult.slice(resolution*resolution*0,resolution*resolution*0+resolution*resolution),resolution,resolution)).reverse()]
+    //     args: ['z',rotate90DegreesCounterClockwise(convert1DArrayTo2D(dataOnlyResult.slice(resolution*resolution*0,resolution*resolution*0+resolution*resolution),resolution,resolution)).reverse()]
+    //   },
+    //   {
+    //     label: 1,
+    //     method:'restyle',
+    //     // args: ['z', rotate90DegreesCounterClockwise(convert1DArrayTo2D(dataOnlyResult.slice(resolution*resolution*1,resolution*resolution*(1)+resolution*resolution),resolution,resolution)).reverse()]
+    //     args: ['z',rotate90DegreesCounterClockwise(convert1DArrayTo2D(dataOnlyResult.slice(resolution*resolution*1,resolution*resolution*(1)+resolution*resolution),resolution,resolution)).reverse()]
+    //   }]
+    // }]
+    // console.log(layout)
   }
-  renderPass.draw(6);
-  renderPass.end();
   //device.queue.submit([commandEncoder.finish()]);
   break;
 }
@@ -726,18 +683,18 @@ var contourData, heatMapdata;
 var resolution=256;
 async function asyncFunc(){
   await loadPlotData();
-  await loadExpData();
   await loadLayoutData();
   loadGeneRelation();
+  console.log('async function completed')
 }
 console.log('before');
-asyncFunc();
-sleep(3000).then(()=>{
+asyncFunc().then(()=>{
+// sleep(3000).then(()=>{
   console.log('after timer');
 console.log('after');
 var expression = document.getElementById('expression') as HTMLInputElement;
 var layout = document.getElementById('layout') as HTMLInputElement;
-var expData, expressionData, layoutDataX, layoutDataY, geneName, layoutDataName,layoutData,flag=0,params={};
+var expData, expressionData, layoutDataX, layoutDataY, geneName, layoutDataName,layoutData,flag=0,params={},summedExp=new Map<String,number>();
 var a,b;
 var layoutDataMap = new Map<string, any>();
 var f=false;
@@ -818,7 +775,6 @@ getAGPLOT(selection)
 //   selection = +selectDiv.value;
 // })
 
-console.log('flag'+flag);
 var xIndex=0,yIndex=0,nameIndex=0,expIndex=0;
 // function checkFlag() {
 //   if(flag != 2) {
@@ -849,18 +805,6 @@ var xIndex=0,yIndex=0,nameIndex=0,expIndex=0;
 //     //console.log('layoutDataMap'+layoutDataX);
 //   }
 // }
-var sigmaInput = document.getElementById('sigma_range') as HTMLInputElement;
-var sigma=0.5;
-sigmaInput.addEventListener('change', ()=>{
-  sigma=+sigmaInput.value;
-  params['sigma']=sigma;
-})
-
-// var slider = document.getElementById('range-slider-example');
-var slider = document.getElementById('parentScale');
-// slider.addEventListener('change',()=>{
-//   console.log(slider);
-// })
 var plotLayout = {
   width:768,
   height:768,
@@ -872,10 +816,23 @@ var plotLayout = {
       bgcolor: 'E2E2E2'
     },
     font:{
-      color:"white",
+      color:"black",
       size:12,
     }
 }
+var sigmaInput = document.getElementById('sigma_range') as HTMLInputElement;
+var sigma=0.5;
+var data=new Float32Array(resolution*resolution*20);
+var sigmaIndexMap = {0:0,0.05:1, 0.1:2,0.15:3, 0.2:4,0.25:5,0.3:6,0.35:7,0.4:8,0.45:9, 0.5:10,0.55:11,0.6:12,0.65:13, 0.7:14,0.75:15, 0.8:16,0.85:17, 0.9:18,0.95:19,1:20}
+sigmaInput.addEventListener('change', ()=>{
+  changeSigma(sigmaInput,heatMapdata,contourData,data,sigmaIndexMap,sigma,resolution)
+})
+
+// var slider = document.getElementById('range-slider-example');
+var slider = document.getElementById('parentScale');
+// slider.addEventListener('change',()=>{
+//   console.log(slider);
+// })
 var scaleInputMin = document.getElementById('minText') as HTMLInputElement;
 var scaleInputMax = document.getElementById('maxText') as HTMLInputElement;
 var scaleMin=-3, scaleMax=3;
@@ -903,6 +860,14 @@ slider.addEventListener('click', ()=>{
       img.href=url;
     })});
     Plotly.newPlot('canvas-contour-div', contourData, plotLayout).then((gd)=>{Plotly.toImage(gd,{width:768,height:768}).then((url)=>{
+      var img = document.getElementById('a2') as HTMLAnchorElement;
+      img.href=url;
+    })});
+    Plotly.newPlot('canvas-div1', heatMapdata, plotLayout).then((gd)=>{Plotly.toImage(gd,{width:768,height:768}).then((url)=>{
+      var img = document.getElementById('a2') as HTMLAnchorElement;
+      img.href=url;
+    })});
+    Plotly.newPlot('canvas-div01', heatMapdata, plotLayout).then((gd)=>{Plotly.toImage(gd,{width:768,height:768}).then((url)=>{
       var img = document.getElementById('a2') as HTMLAnchorElement;
       img.href=url;
     })});
@@ -956,6 +921,14 @@ showGeneInput.addEventListener('click', ()=>{
       var img = document.getElementById('a2') as HTMLAnchorElement;
       img.href=url;
     })});
+    Plotly.newPlot('canvas-div1', heatMapdata, plotLayout).then((gd)=>{Plotly.toImage(gd,{width:768,height:768}).then((url)=>{
+      var img = document.getElementById('a2') as HTMLAnchorElement;
+      img.href=url;
+    })});
+    Plotly.newPlot('canvas-div01', heatMapdata, plotLayout).then((gd)=>{Plotly.toImage(gd,{width:768,height:768}).then((url)=>{
+      var img = document.getElementById('a2') as HTMLAnchorElement;
+      img.href=url;
+    })});
   }
 })
 
@@ -972,12 +945,67 @@ downloadDiv2.addEventListener('click',()=>{
   exportToHtml(img);
 })
 
+var navGT = document.getElementById('nav-GT-tab') as HTMLButtonElement;
+var navSigma = document.getElementById('nav-Sigma-tab') as HTMLButtonElement;
+var navAvg = document.getElementById('nav-Avg-tab') as HTMLButtonElement;
+var navContentGTDiv = document.getElementById('nav-GT') as HTMLButtonElement;
+var navContentSigmaDiv = document.getElementById('nav-Sigma') as HTMLButtonElement;
+var navContentAvgDiv = document.getElementById('nav-Avg') as HTMLButtonElement;
+navGT.addEventListener('click',()=>{
+  navGT.className='nav-link active'
+  navSigma.className='nav-link'
+  navAvg.className='nav-link'
+  navGT.ariaSelected='true'
+  navSigma.ariaSelected='false'
+  navAvg.ariaSelected='false'
+  navContentGTDiv.className='tab-pane fade show active'
+  navContentSigmaDiv.className='tab-pane fade'
+  navContentAvgDiv.className='tab-pane fade'
+})
+navSigma.addEventListener('click',()=>{
+  navSigma.className='nav-link active'
+  navGT.className='nav-link'
+  navAvg.className='nav-link'
+  navSigma.ariaSelected='true'
+  navGT.ariaSelected='false'
+  navAvg.ariaSelected='false'
+  navContentSigmaDiv.className='tab-pane fade show active'
+  navContentGTDiv.className='tab-pane fade'
+  navContentAvgDiv.className='tab-pane fade'
+})
+navAvg.addEventListener('click',()=>{
+  navAvg.className='nav-link active'
+  navSigma.className='nav-link'
+  navGT.className='nav-link'
+  navAvg.ariaSelected='true'
+  navSigma.ariaSelected='false'
+  navGT.ariaSelected='false'
+  navContentAvgDiv.className='tab-pane fade show active'
+  navContentSigmaDiv.className='tab-pane fade'
+  navContentGTDiv.className='tab-pane fade'
+})
+
+
 var len=0;
 var generate = document.getElementById('Generate');
 var result=0, lastIternation=0;
 
-// var graphDiv = document.getElementById('canvas-div') as object;
-// graphDiv.('plotly_selected', (eventData)=> {
+var graphDiv = document.getElementById('canvas-div');
+// var selectionLayer = document.getElementsByTagName('selectionlayer');
+// selectionLayer[0].addEventListener('click',()=>{
+//   alert('clicked');
+// })
+// $('#canvas-div01').on('click',(eventData)=>{
+//   alert('click done')
+//   extractBarPlot(graphDiv);
+// })
+// console.log('hey')
+// console.log(typeof(graphDiv))
+// console.log('graphdiv methods: '+Object.keys(Plotly))
+
+// graphDiv.addEventListener('plotly_click', (eventData)=> {
+//   alert('you clicked it')
+// })
 //   var x = [];
 //   var y = [];
   
@@ -1007,13 +1035,13 @@ var result=0, lastIternation=0;
 // });
 var geneNames = getGenes();
 // console.log('gene names: '+geneNames);
-  var selectGeneDiv = document.getElementById('selectGene') as HTMLSelectElement;
-  for(var i=0;i<geneNames.length;i++){
-    console.log('option no: '+i+" name: "+geneNames[i]);
-    var option = document.createElement('option');
-    option.value = geneNames[i];
-    option.text = geneNames[i];
-    selectGeneDiv.appendChild(option);
+var selectGeneDiv = document.getElementById('selectGene') as HTMLSelectElement;
+for(var i=0;i<geneNames.length;i++){
+  // console.log('option no: '+i+" name: "+geneNames[i]);
+  var option = document.createElement('option');
+  option.value = geneNames[i];
+  option.text = geneNames[i];
+  selectGeneDiv.appendChild(option);
 }
 var scatterX=[], scatterY=[], scatterNames=[];
 var geneRelatationTraceMap = new Map<string, any>(), traceIndex=2;
@@ -1074,9 +1102,12 @@ selectGeneDiv.addEventListener('change',()=>{
 })
 a = getExp();
 b = getXandY();
-
+// console.log('layout: '+b['cacng3']);
 generate.addEventListener('click', async ()=>{
+  console.log('app.ts || generate');
   const startTime = new Date().getTime();
+  data=new Float32Array(resolution*resolution*20);
+  console.log(data.slice(0,10));
   console.log('start time: '+startTime);
   // console.log('x: '+layoutDataX.length+' y: '+layoutDataY.length+' exp: '+expressionData.length+' gene: '+geneName.length)
   // console.log('layoutx: '+layoutDataX)
@@ -1093,13 +1124,22 @@ generate.addEventListener('click', async ()=>{
   // console.log('layoutData: '+layoutData[0]['field1']);
   // console.log('layoutData: '+layoutData[0][0]);
   // console.log('layoutData: '+typeof(layoutData));
-  var data=new Float32Array(resolution*resolution);
   selection = getSelection();
   selection = Array.from(new Set(selection));
   console.log('selection'+selection.length)
   if(f==true)
     expData = preProcessExpData(expData)
+    await loadExpData(selection)
+    var selectionLen = selection.length;
+    a = getExp();
+    var count=0;
     for (const select of selection) {
+      console.log(count +" of "+selectionLen);
+      count++;
+      // console.log('data for each select : '+data.slice(0,10))
+      console.log('select')
+      console.log(select);
+      console.log(selection);
       var mergedMap = mergeLayoutExpData(b,a,select);
     if(selection[selection.length-1]==select){
       console.log('selection: '+select);
@@ -1122,12 +1162,16 @@ generate.addEventListener('click', async ()=>{
         layoutDataX[xIndex++]=0.9*row[1]+0.05;
         layoutDataY[yIndex++]=1-(0.9*row[2]+0.05);
         expressionData[expIndex++]=row[3];
+        if(summedExp[row[0]]==undefined)
+          summedExp[row[0]]=row[3]
+        else
+          summedExp[row[0]]+=row[3]
       }
     console.log('x: '+layoutDataX.length+' y: '+layoutDataY.length+' exp: '+expressionData.length+' gene: '+geneName.length)
     console.log('layoutx: '+layoutDataX.length)
     console.log('layouty: '+layoutDataY.length)
     console.log('expression data: '+expressionData.length)
-    var outcome=await main(expressionData, layoutDataX, layoutDataY, geneName, sigma, showGene, scaleMin, scaleMax, resolution, selection.length, lastIternation, data) as unknown as Float32Array;
+    var outcome=await main(expressionData, layoutDataX, layoutDataY, geneName, sigma, showGene, scaleMin, scaleMax, resolution, selection.length, lastIternation, data, selectionLen, summedExp) as unknown as Float32Array;
     await convertPromiseToFloat32Array(outcome).then((d)=>{
       data=d;
       console.log('final data: '+data[0]);
@@ -1142,6 +1186,7 @@ const endTime = new Date().getTime();
 console.log('end time: '+endTime)
 console.log('Time taken: '+(endTime-startTime))
 console.log('heatmap data'+contourData)
+var allsigsigdata = normalizeAllSigmas(data,resolution);
 //drawPlot(data,layoutDataX,layoutDataY,expressionData,geneName,scaleMin,scaleMax,showGene)
 });
 })
@@ -1151,4 +1196,3 @@ async function sleep(ms) {
 }
 
 // checkFlag();
-
