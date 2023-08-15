@@ -9,13 +9,27 @@ import { copyFileSync } from 'fs';
 import {getPlotData,getGenes} from './rest'
 
 var samples: string[] = []
+var tab2Samples01: string[] = []
+var tab2Samples02: string[] = []
 
 function setSelection(selection){
   samples = selection;
 }
+function setTab2Selection01(selection){
+  tab2Samples01 = selection;
+}
+function setTab2Selection02(selection){
+  tab2Samples02 = selection;
+}
 
 export function getSelection(){
   return samples;
+}
+export function getTab2Selection01(){
+  return tab2Samples01;
+}
+export function getTab2Selection02(){
+  return tab2Samples02;
 }
 
 async function getPlotlyScript() {
@@ -227,7 +241,105 @@ export async function getAGPLOT(selection: string[]){
   // let the grid know which columns and what data to use
   /** @type {import('ag-grid-community').GridOptions} */
   var gridDiv=document.querySelector("#myGrid") as HTMLElement;
+  var tab2GridDiv1=document.querySelector("#myGridTab2-01") as HTMLElement;
+  var tab2GridDiv2=document.querySelector("#myGridTab2-02") as HTMLElement;
   const gridOptions = {
+    columnDefs: columnDefs,
+    rowData: rowData,
+    // defaultColDef: {
+    //   flex: 1,
+    //   minWidth: 100,
+    //   filter: true,
+    //   resizable: true,
+    //   enableRowGroup: true,
+    // },
+    rowSelection: 'multiple',
+    autoGroupColumnDef: {
+      minWidth: 200,
+      filter: 'agGroupColumnFilter',
+    },
+    animateRows: true,
+    // sideBar: {id:'filters',hiddenByDefault:true},
+    sideBar: {
+      toolPanels: [
+          {
+              id: 'columns',
+              labelDefault: 'Columns',
+              labelKey: 'columns',
+              iconKey: 'columns',
+              toolPanel: 'agColumnsToolPanel',
+          },
+          {
+              id: 'filters',
+              labelDefault: 'Filters',
+              labelKey: 'filters',
+              iconKey: 'filter',
+              toolPanel: 'agFiltersToolPanel',
+          }
+      ],
+      defaultToolPanel: 'columns',
+      hiddenByDefault:true
+    },
+    groupSelectsChildren: true,
+    suppressHorizontalScroll: true,
+    defaultColDef: {
+      enableRowGroup: true,
+      enablePivot: true,
+      enableValue: true,
+      width: 100,
+      sortable: true,
+      resizable: true,
+      filter: true,
+      flex: 1,
+      minWidth: 100,
+      editable: true,
+    },
+    pagination: true,
+    paginationPageSize: 10,
+    // paginationAutoPageSize:true,
+    domLayout: 'autoHeight',
+    //suppressHorizontalScroll: true
+    // getRowId: (params) => params.data.id,
+  } as GridOptions;
+  var tab2GridOptions1 = {
+    columnDefs: columnDefs,
+    rowData: rowData,
+    // defaultColDef: {
+    //   flex: 1,
+    //   minWidth: 100,
+    //   filter: true,
+    //   resizable: true,
+    //   enableRowGroup: true,
+    // },
+    rowSelection: 'multiple',
+    autoGroupColumnDef: {
+      minWidth: 200,
+      filter: 'agGroupColumnFilter',
+    },
+    animateRows: true,
+    sideBar: 'filters',
+    groupSelectsChildren: true,
+    suppressHorizontalScroll: true,
+    defaultColDef: {
+      enableRowGroup: true,
+      enablePivot: true,
+      enableValue: true,
+      width: 100,
+      sortable: true,
+      resizable: true,
+      filter: true,
+      flex: 1,
+      minWidth: 100,
+      editable: true,
+    },
+    pagination: true,
+    paginationPageSize: 10,
+    // paginationAutoPageSize:true,
+    domLayout: 'autoHeight',
+    //suppressHorizontalScroll: true
+    // getRowId: (params) => params.data.id,
+  } as GridOptions;;
+  var tab2GridOptions2 = {
     columnDefs: columnDefs,
     rowData: rowData,
     // defaultColDef: {
@@ -270,7 +382,11 @@ export async function getAGPLOT(selection: string[]){
   // const containerHeight = rowHeight * rowCount;
   // gridDiv.style.height = containerHeight + 'px';
   new Grid(gridDiv, gridOptions);
+  new Grid(tab2GridDiv1, tab2GridOptions1);
+  new Grid(tab2GridDiv2, tab2GridOptions2);
+
   gridDiv.addEventListener('click',()=>{
+    console.log('inside grid div click event')
     const selectedRows = gridOptions.api.getSelectedRows();
     // console.log(selectedRows)
     // console.log(selectedRows[selectedRows.length-1]['SampleID'])
@@ -284,6 +400,24 @@ export async function getAGPLOT(selection: string[]){
     //selection=temp.slice();
     //console.log(selection)
     //selection = selectedRows;
+  })
+  tab2GridDiv1.addEventListener('click',()=>{
+    console.log('inside grid div click event')
+    const selectedRows = tab2GridOptions1.api.getSelectedRows();
+    selection=[]
+    for(var row of selectedRows){
+      selection.push(row['SampleID'])
+    }
+    setTab2Selection01(selection)
+  })
+  tab2GridDiv2.addEventListener('click',()=>{
+    console.log('inside grid div click event')
+    const selectedRows = tab2GridOptions2.api.getSelectedRows();
+    selection=[]
+    for(var row of selectedRows){
+      selection.push(row['SampleID'])
+    }
+    setTab2Selection02(selection)
   })
   // gridDiv.scrollTo(0, gridDiv.scrollHeight)
   // gridDiv.style.height = 40.36*rowData.length+'px';

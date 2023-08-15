@@ -44,6 +44,64 @@ option{
 	color: black;
 }
 
+/* #myGridTab2-01{
+	width: 50%;
+	height: 90%;
+	float: left;
+	margin-left: 0%;
+	overflow: auto;
+	position: fixed;
+  }
+  
+  #myGridTab2-01{
+	margin-left: 50%;
+	margin-top: 0%;
+	overflow: scroll;
+	height: auto;
+  } */
+#myGridTab2-01{
+	width: 49%;
+	float: left;
+}
+#myGridTab2-02{
+	margin-left: 50%;
+}
+
+#canvas-tab2-01{
+	/* max-width: 45%; */
+	width: 49%;
+	float: left;
+}
+#canvas-tab2-02{
+	/* max-width: 45%; */
+	width: 49%;
+	margin-left: 51%;
+	/* float: right; */
+}
+
+#gene-pathway-graph{
+	/* max-width: 45%; */
+	width: 59%;
+	float: left;
+}
+#gene-pathway-table{
+	/* max-width: 45%; */
+	width: 39%;
+	margin-left: 61%;
+	/* float: right; */
+}
+#pathway-filter-text{
+	/* max-widh: 45%; */
+	width: 59%;
+	float: left;
+}
+#pathway-filter-anchor{
+	/* max-width: 45%; */
+	float: right;
+	margin-top: 8px;
+	/* float: right; */
+}
+
 .range-slider{
   height: 5px;
   /* background-color: #f8f9fa; */

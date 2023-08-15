@@ -1,6 +1,7 @@
 import exp from "constants";
 import { stringify } from "querystring";
 const csvtojson=require("csvtojson");
+var store = require('store')
 
 interface myObject {id:number;sampleId: string; overal_survival__days_:number; overal_survival_status:number; gbm_subtype:string; age_at_gbm_diagnosis:number }
 var output=[];
@@ -9,6 +10,7 @@ var expOutput=[];
 var genes=[];
 var geneRelationMapName= new Map<string, any>();
 var geneRelationMapScore= new Map<string, any>();
+var expGeneMap = new Map<string, any>();
 export async function loadAllExpData(){
 
     const url = 'https://discovery.informatics.uab.edu/apex/gtkb/gene_exp/all?offset='
@@ -37,6 +39,7 @@ export async function loadAllExpData(){
 }
 
 export async function loadExpData(sampleIDS: string[]){
+    expOutput=[]
     console.log('rest.ts || loadExpData || Start');
     const startTime = new Date().getTime();
     const urls = [];
@@ -243,17 +246,32 @@ export function getExp(){
     var expMap = new Map<string, any>();
     // console.log(expOutput);
     console.log('start getExp');
+    // for(var i=0;i<expOutput.length;i++){
+    //     expMap[expOutput[i].sampleid]={'sampleid': expOutput[i].sampleid};
+    // }
+    // for(var i=0;i<expOutput.length;i++){
+    //     var map = new Map();
+    //     // map[expOutput[i]['gene_symbol']]= expOutput[i]['value'];
+    //     // expMap[expOutput[i].sampleid]=Object.assign({},expMap[expOutput[i].sampleid],map);
+    //     expMap[expOutput[i].sampleid][expOutput[i]['gene_symbol'].toUpperCase()]=expOutput[i]['value'];
+    // }
+    // console.log('getExp completed');
+    expMap['sampleKey']={'sample':'sample'};
     for(var i=0;i<expOutput.length;i++){
-        expMap[expOutput[i].sampleid]={'sampleid': expOutput[i].sampleid};
+        if(expMap['sampleKey'][expOutput[i]['gene_symbol']]==undefined){
+            expMap['sampleKey'][expOutput[i]['gene_symbol']]=+expOutput[i]['value'];
+            expGeneMap[expOutput[i]['gene_symbol']]=[+expOutput[i]['value']];
+        }
+        else{
+            expMap['sampleKey'][expOutput[i]['gene_symbol']]+=+expOutput[i]['value'];
+            expGeneMap[expOutput[i]['gene_symbol']].push(+expOutput[i]['value']);
+        }
     }
-    for(var i=0;i<expOutput.length;i++){
-        var map = new Map();
-        // map[expOutput[i]['gene_symbol']]= expOutput[i]['value'];
-        // expMap[expOutput[i].sampleid]=Object.assign({},expMap[expOutput[i].sampleid],map);
-        expMap[expOutput[i].sampleid][expOutput[i]['gene_symbol'].toUpperCase()]=expOutput[i]['value'];
-    }
-    console.log('getExp completed');
+    store.set('expGeneMap', expGeneMap);
     return expMap;
+}
+export function getExpGeneMap(){
+    return expGeneMap;
 }
 export function getGeneReationMapName(){
     return geneRelationMapName;

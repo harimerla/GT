@@ -1,7 +1,12 @@
+import { Hmac } from 'crypto';
 import * as Plotly from 'plotly.js-dist';
+import { DomLayoutType, Grid, GridOptions } from 'ag-grid-community';
 
-var specificLayout,allSigmaLayout, tab1Layout,tab1HeatMapData;
-export async function drawSpecificPlot(heatMapdata, contourData, layout){
+var specificLayout,allSigmaLayout, tab1Layout, tab2Layout,tab1HeatMapData,tab2HeatMapdataa01,tab2HeatMapdataa02;
+var heatMapdata,contourData;
+export async function drawSpecificPlot(hMdata, cData, layout){
+    heatMapdata=hMdata;
+    contourData=cData;
     specificLayout = layout;
     // specificLayout['title']={
     //     text:'<br>Plot Title',
@@ -11,7 +16,7 @@ export async function drawSpecificPlot(heatMapdata, contourData, layout){
     //     },
     //     xref: 'paper',
     //   }
-    Plotly.newPlot('canvas-div', heatMapdata, specificLayout).then((gd)=>{Plotly.toImage(gd,{width:768,height:768}).then((url)=>{
+    Plotly.newPlot('canvas-div', heatMapdata, specificLayout,{scrollZoom: true}).then((gd)=>{Plotly.toImage(gd,{width:768,height:768}).then((url)=>{
         var img = document.getElementById('a1') as HTMLAnchorElement;
         img.href=url;
       })});
@@ -21,7 +26,8 @@ export async function drawSpecificPlot(heatMapdata, contourData, layout){
       })});
 }
 
-export async function drawAllSigmaPlot(heatMapdata, layout){
+export async function drawAllSigmaPlot(hMdata, layout){
+    heatMapdata=hMdata;
     allSigmaLayout = layout;
     // allSigmaLayout['title']={
     //     text:'<br>',
@@ -37,8 +43,11 @@ export async function drawAllSigmaPlot(heatMapdata, layout){
       })});
 }
 
-export async function drawTab1Plot(heatMapdata, layout){
-    tab1HeatMapData = heatMapdata;
+export async function drawTab1Plot(hMdata, layout){
+    // tab1HeatMapData = JSON.parse(JSON.stringify(hMdata));
+    tab1HeatMapData=hMdata;
+    console.log(tab1HeatMapData);
+    console.log(typeof(tab1HeatMapData))
     tab1HeatMapData[1]['visible']='true';
     tab1Layout=layout
     tab1Layout['dragmode']='lasso'
@@ -48,7 +57,59 @@ export async function drawTab1Plot(heatMapdata, layout){
       })});
 }
 
-export function changeSigma(element, heatMapdata, contourData, data, sigmaIndexMap, sigma, resolution){
+export async function drawTab2Plot01(tab2HeatMapdata01,layout){
+  console.log('inside drawTab2Plot01')
+  tab2HeatMapdata01[0]['selected']=false
+  // tab2HeatMapdata01[1]['visible']=true;
+  tab2Layout = JSON.parse(JSON.stringify(layout));
+  tab2Layout['margin']={
+    l: 50,
+    r: 50,
+    b: 50,
+    t: 50,
+    pad: 2
+  }
+  tab2Layout['dragmode']='lasso';
+  delete tab2Layout['width'];
+  delete tab2Layout['height'];
+  // tab2Layout['width']='100%'
+  // tab2Layout['width']='30%'
+  // tab2Layout['height']='50%'
+  Plotly.newPlot('canvas-tab2-01', tab2HeatMapdata01, tab2Layout).then((gd)=>{Plotly.toImage(gd,{width:768,height:768}).then((url)=>{
+    var img = document.getElementById('a1') as HTMLAnchorElement;
+    img.href=url;
+  })});
+}
+export async function drawTab2Plot02(tab2HeatMapdata02,layout){
+  console.log('inside drawTab2Plot02')
+  tab2Layout = JSON.parse(JSON.stringify(layout));
+  tab2Layout['margin']={
+    l: 50,
+    r: 50,
+    b: 50,
+    t: 50,
+    pad: 2
+  }
+  tab2Layout['dragmode']='lasso';
+  delete tab2Layout['width'];
+  delete tab2Layout['height'];
+  // tab2Layout['width']='100%'
+  Plotly.newPlot('canvas-tab2-02', tab2HeatMapdata02, tab2Layout).then((gd)=>{Plotly.toImage(gd,{width:768,height:768}).then((url)=>{
+    var img = document.getElementById('a1') as HTMLAnchorElement;
+    img.href=url;
+  })});
+}
+export async function updateExpDataInPlot(tab2HeatMapdata01,tab2HeatMapdata02,tab2FinalData01,tab2FinalData02,tab2WeightsArrayMap01,tab2WeightsArrayMap02,tab2Exp01,tab2Exp02,selectionLen1, selectionLen2){
+  // console.log('updateExpDataInPlot'+tab2FinalData01)
+  // console.log('updateExpDataInPlot'+tab2FinalData01)
+  console.log(tab2Exp01)
+  console.log(tab2Exp02)
+  tab2HeatMapdata01[1]['args']={z1:tab2FinalData01, z2:tab2FinalData02,expGeneMap1:tab2WeightsArrayMap01,expGeneMap2:tab2WeightsArrayMap02,exp1:tab2Exp01,exp2:tab2Exp02,selectionLen1:selectionLen1,selectionLen2:selectionLen2}
+  tab2HeatMapdata02[1]['args']={z1:tab2FinalData01, z2:tab2FinalData02,expGeneMap1:tab2WeightsArrayMap01,expGeneMap2:tab2WeightsArrayMap02,exp1:tab2Exp01,exp2:tab2Exp02,selectionLen1:selectionLen1,selectionLen2:selectionLen2}
+  Plotly.update('canvas-tab2-01',tab2HeatMapdata01,tab2Layout,1)
+  Plotly.update('canvas-tab2-02',tab2HeatMapdata02,tab2Layout,1)
+}
+export function changeSigma(element, data, sigmaIndexMap, sigma, resolution){
     sigma=+element.value;
     if(sigma==1)
       sigma=0.95;
@@ -78,6 +139,15 @@ export function changeSigma(element, heatMapdata, contourData, data, sigmaIndexM
         img.href=url;
       })});
     }
+}
+
+export async function purgeDivs(){
+    Plotly.purge('canvas-div');
+    Plotly.purge('canvas-contour-div')
+    Plotly.purge('canvas-div1')
+    Plotly.purge('canvas-div01')
+    // Plotly.purge('canvas-tab2-01')
+    // Plotly.purge('canvas-tab2-02')
 }
 
 export function convert1DArrayTo2D(float32Array, rows, columns) {

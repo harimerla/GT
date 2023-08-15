@@ -7,10 +7,12 @@ import * as fs from 'fs';
 import * as pandas from "pandas";
 import { DataFrame } from "pandas-js";
 import {drawPlot} from './plot'
-import {exportToHtml,getExpData1, getAGPLOT, preProcessExpData, getSelection,mergeLayoutExpData} from './preProcessing'
-import {loadPlotData,loadLayoutData, loadExpData, getExp, getXandY, getGenes,loadGeneRelation,getGeneReationMapName} from './rest'
-import {drawSpecificPlot,drawAllSigmaPlot,drawTab1Plot,changeSigma,rotate90DegreesCounterClockwise} from './plotlyCode'
+import {exportToHtml,getExpData1, getAGPLOT, preProcessExpData, getSelection,mergeLayoutExpData,getTab2Selection01,getTab2Selection02} from './preProcessing'
+import {loadPlotData,loadLayoutData, loadExpData, getExp, getXandY, getGenes,loadGeneRelation,getGeneReationMapName,getExpGeneMap} from './rest'
+import {drawSpecificPlot,drawAllSigmaPlot,drawTab1Plot,changeSigma,rotate90DegreesCounterClockwise, purgeDivs,drawTab2Plot02,drawTab2Plot01,updateExpDataInPlot} from './plotlyCode'
+import {callPagerAPI} from './pager'
 import {extractBarPlot} from './plotly_events'
+var store = require('store')
 // import RangeSlider from '@spreadtheweb/multi-range-slider';
 //import * as csvtojson from 'csvtojson';
 const csvtojson=require("csvtojson");
@@ -221,7 +223,7 @@ function normalize(arr: Float32Array){
   return temp;
 }
 
-async function main(expressionData: Float32Array, layoutDataX: Float32Array, layoutDataY: Float32Array, geneName: Float32Array, sigmaa=1, showGene: boolean, scaleMin: number, scaleMax: number, resolution: number, sampleSize: number, lastIternation:number,  data: Float32Array, selectionLen:number, summedExp:Map<String, number>) {
+async function main(expressionData: Float32Array, layoutDataX: Float32Array, layoutDataY: Float32Array, geneName: Float32Array, sigmaa=1, showGene: boolean, scaleMin: number, scaleMax: number, resolution: number, sampleSize: number, lastIternation:number, selectionLen:number, summedExp:Map<String, number>,weightsArrayMap:Map<String, any>) {
   var adapter = await navigator.gpu.requestAdapter();
   var device = await adapter.requestDevice();
 
@@ -544,72 +546,17 @@ while(true){
   // document.body.appendChild(link);
   // link.click();
   // console.log('output'+result[result.length-1]);
-  heatMapdata = [{
-    z: finalData,
-    //z: finalData,
-    colorscale: 'Jet',
-    colorbar: {len:1,thickness:10},
-    thickness: 1,
-    type: 'heatmap',
-    // text: finalData,
-    hoverinfo: true,
-    name: 'heatmap',
-    zmin: scaleMin,
-    zmax: scaleMax
-  },{
-    x: normalize(x),
-    y: normalize(y),
-    z: finalData,
-    mode: 'markers+text',
-    type: 'scatter',
-    text: geneName,
-    colorscale: 'Jet',
-    hoverinfo:true,
-    visible: 'legendonly',
-    name: 'Gene Name',
-    args: {z:finalData, exp:summedExp}}]
-  // },{
-  //   name: 'Gene Relation',
-  //   visible:'legendonly',
-  // }]
-
-  contourData = [{
-    z: finalData,
-    type: 'contour',
-    colorscale: 'Jet',
-    colorbar: {len:1, thickness:10},
-    // text: finalData,
-    zmin: scaleMin,
-    zmax: scaleMax
-  },{
-    x: normalize(x),
-    y: normalize(y),
-    // z: expressionData,
-    mode: 'markers+text',
-    type: 'scatter',
-    text: geneName,
-    colorscale: 'Jet',
-    hoverinfo:true,
-    visible: 'legendonly',
-    name: 'Gene Name',}]
-  // },{
-  //   name: 'Gene Relation',
-  //   visible:'legendonly',
-  // }]
-
-  // if(!showGene){
-  //   heatMapdata[1].visible='legendonly';
-  //   contourData[1].visible='legendonly';
-  // }
-  // else{
-  //   heatMapdata[1].visible='true';
-  //   contourData[1].visible='true';
-  // }
-
   var layout = {
     width:768,
     height:768,
     showlegend: true,
+    margin: {
+      l: 70,
+      r: 70,
+      b: 70,
+      t: 70,
+      pad: 4
+    },
     legend: {
       x: 0.8,
       // xanchor: 'right',
@@ -622,6 +569,49 @@ while(true){
     },
   }
   if(lastIternation==1){
+    heatMapdata = [{
+      z: finalData,
+      //z: finalData,
+      colorscale: 'Jet',
+      colorbar: {len:1,thickness:10},
+      thickness: 1,
+      type: 'heatmap',
+      // text: finalData,
+      hoverinfo: true,
+      name: 'heatmap',
+      zmin: scaleMin,
+      zmax: scaleMax
+    },{
+      x: normalize(x),
+      y: normalize(y),
+      z: finalData,
+      mode: 'markers+text',
+      type: 'scatter',
+      text: geneName,
+      colorscale: 'Jet',
+      hoverinfo:true,
+      visible: 'legendonly',
+      name: 'Gene Name',
+      args: {z:finalData, exp:summedExp}}]
+    contourData = [{
+      z: finalData,
+      type: 'contour',
+      colorscale: 'Jet',
+      colorbar: {len:1, thickness:10},
+      // text: finalData,
+      zmin: scaleMin,
+      zmax: scaleMax
+    },{
+      x: normalize(x),
+      y: normalize(y),
+      // z: expressionData,
+      mode: 'markers+text',
+      type: 'scatter',
+      text: geneName,
+      colorscale: 'Jet',
+      hoverinfo:true,
+      visible: 'legendonly',
+      name: 'Gene Name',}]
     drawSpecificPlot(heatMapdata, contourData, layout);
     drawAllSigmaPlot(heatMapdata, layout);
     drawTab1Plot(heatMapdata, layout)
@@ -661,6 +651,72 @@ while(true){
     //   }]
     // }]
     // console.log(layout)
+    data=dataOnlyResult;
+  }
+  else if(lastIternation==21){
+    tab2FinalData01=finalData;
+    tab2Exp01=summedExp;
+    selectionLen1=selectionLen;
+    tab2WeightsArrayMap01 = store.get('expGeneMap');
+    tab2HeatMapdata01 = [{
+      z: finalData,
+      //z: finalData,
+      colorscale: 'Jet',
+      colorbar: {len:1,thickness:10},
+      thickness: 1,
+      type: 'heatmap',
+      // text: finalData,
+      hoverinfo: true,
+      name: 'heatmap',
+      zmin: scaleMin,
+      zmax: scaleMax
+    },{
+      x: normalize(x),
+      y: normalize(y),
+      z: finalData,
+      mode: 'markers+text',
+      type: 'scatter',
+      text: geneName,
+      colorscale: 'Jet',
+      hoverinfo:true,
+      visible: 'legendonly',
+      name: 'Gene Name',
+      args: {z:finalData, exp:summedExp}}]
+    drawTab2Plot01(tab2HeatMapdata01,layout);
+    // tab2HeatMapdata01=dataOnlyResult;
+  }
+  else if(lastIternation==22){
+    tab2FinalData02=finalData;
+    tab2Exp02=summedExp;
+    selectionLen2=selectionLen
+    tab2WeightsArrayMap02 = store.get('expGeneMap');
+    tab2HeatMapdata02 = [{
+      z: finalData,
+      //z: finalData,
+      colorscale: 'Jet',
+      colorbar: {len:1,thickness:10},
+      thickness: 1,
+      type: 'heatmap',
+      // text: finalData,
+      hoverinfo: true,
+      name: 'heatmap',
+      zmin: scaleMin,
+      zmax: scaleMax
+    },{
+      x: normalize(x),
+      y: normalize(y),
+      z: finalData,
+      mode: 'markers+text',
+      type: 'scatter',
+      text: geneName,
+      colorscale: 'Jet',
+      hoverinfo:true,
+      visible: 'legendonly',
+      name: 'Gene Name',
+      args: {z:finalData, exp:summedExp}}]
+    drawTab2Plot02(tab2HeatMapdata02,layout);
+    // tab2HeatMapdata02=dataOnlyResult;
+    updateExpDataInPlot(tab2HeatMapdata01,tab2HeatMapdata02,tab2FinalData01,tab2FinalData02,tab2WeightsArrayMap01,tab2WeightsArrayMap02,tab2Exp01,tab2Exp02,selectionLen1,selectionLen2);
   }
   //device.queue.submit([commandEncoder.finish()]);
   break;
@@ -679,8 +735,13 @@ return dataOnlyResult;
 //   }
 //   asyncFunc()
 // });
-var contourData, heatMapdata;
-var resolution=256;
+var contourData, heatMapdata, tab2HeatMapdata01,tab2HeatMapdata02, tab2FinalData01,tab2FinalData02;;
+var tab2WeightsArrayMap01, tab2WeightsArrayMap02, tab2Exp01, tab2Exp02;
+var resolution=256, selectionLen=0, selectionLen1=0, selectionLen2=0;
+var data=new Float32Array(resolution*resolution*20);
+var tab2data01=new Float32Array(resolution*resolution*20);
+var tab2data02=new Float32Array(resolution*resolution*20);
+var generateTab2 = document.getElementById('Generate-Tab2');
 async function asyncFunc(){
   await loadPlotData();
   await loadLayoutData();
@@ -695,7 +756,7 @@ console.log('after');
 var expression = document.getElementById('expression') as HTMLInputElement;
 var layout = document.getElementById('layout') as HTMLInputElement;
 var expData, expressionData, layoutDataX, layoutDataY, geneName, layoutDataName,layoutData,flag=0,params={},summedExp=new Map<String,number>();
-var a,b;
+var a,b,weightsArrayMap;
 var layoutDataMap = new Map<string, any>();
 var f=false;
 expression.addEventListener('change', ()=>{
@@ -822,10 +883,10 @@ var plotLayout = {
 }
 var sigmaInput = document.getElementById('sigma_range') as HTMLInputElement;
 var sigma=0.5;
-var data=new Float32Array(resolution*resolution*20);
 var sigmaIndexMap = {0:0,0.05:1, 0.1:2,0.15:3, 0.2:4,0.25:5,0.3:6,0.35:7,0.4:8,0.45:9, 0.5:10,0.55:11,0.6:12,0.65:13, 0.7:14,0.75:15, 0.8:16,0.85:17, 0.9:18,0.95:19,1:20}
 sigmaInput.addEventListener('change', ()=>{
-  changeSigma(sigmaInput,heatMapdata,contourData,data,sigmaIndexMap,sigma,resolution)
+  callPagerAPI()
+  changeSigma(sigmaInput,data,sigmaIndexMap,sigma,resolution)
 })
 
 // var slider = document.getElementById('range-slider-example');
@@ -945,46 +1006,108 @@ downloadDiv2.addEventListener('click',()=>{
   exportToHtml(img);
 })
 
+// Tabs
 var navGT = document.getElementById('nav-GT-tab') as HTMLButtonElement;
 var navSigma = document.getElementById('nav-Sigma-tab') as HTMLButtonElement;
 var navAvg = document.getElementById('nav-Avg-tab') as HTMLButtonElement;
+var navTab2 = document.getElementById('nav-tab2-tab') as HTMLButtonElement;
 var navContentGTDiv = document.getElementById('nav-GT') as HTMLButtonElement;
 var navContentSigmaDiv = document.getElementById('nav-Sigma') as HTMLButtonElement;
 var navContentAvgDiv = document.getElementById('nav-Avg') as HTMLButtonElement;
+var navContentTab2Div = document.getElementById('nav-tab2') as HTMLButtonElement;
+var navPathway = document.getElementById('nav-pathway-tab') as HTMLButtonElement;
+var navContentPathWayDiv = document.getElementById('nav-pathway') as HTMLButtonElement;
 navGT.addEventListener('click',()=>{
   navGT.className='nav-link active'
   navSigma.className='nav-link'
   navAvg.className='nav-link'
+  navTab2.className='nav-link'
   navGT.ariaSelected='true'
   navSigma.ariaSelected='false'
   navAvg.ariaSelected='false'
+  navTab2.ariaSelected='false'
   navContentGTDiv.className='tab-pane fade show active'
   navContentSigmaDiv.className='tab-pane fade'
   navContentAvgDiv.className='tab-pane fade'
+  navContentTab2Div.className='tab-pane fade'
+  navPathway.className='nav-link'
+  navPathway.ariaSelected='false'
+  navContentPathWayDiv.className='tab-pane fade'
 })
 navSigma.addEventListener('click',()=>{
   navSigma.className='nav-link active'
   navGT.className='nav-link'
   navAvg.className='nav-link'
+  navTab2.className='nav-link'
   navSigma.ariaSelected='true'
   navGT.ariaSelected='false'
   navAvg.ariaSelected='false'
+  navTab2.ariaSelected='false'
   navContentSigmaDiv.className='tab-pane fade show active'
   navContentGTDiv.className='tab-pane fade'
   navContentAvgDiv.className='tab-pane fade'
+  navContentTab2Div.className='tab-pane fade'
+  navPathway.className='nav-link'
+  navPathway.ariaSelected='false'
+  navContentPathWayDiv.className='tab-pane fade'
 })
 navAvg.addEventListener('click',()=>{
   navAvg.className='nav-link active'
   navSigma.className='nav-link'
   navGT.className='nav-link'
+  navTab2.className='nav-link'
   navAvg.ariaSelected='true'
   navSigma.ariaSelected='false'
   navGT.ariaSelected='false'
+  navTab2.ariaSelected='false'
   navContentAvgDiv.className='tab-pane fade show active'
   navContentSigmaDiv.className='tab-pane fade'
   navContentGTDiv.className='tab-pane fade'
+  navContentTab2Div.className='tab-pane fade'
+  navPathway.className='nav-link'
+  navPathway.ariaSelected='false'
+  navContentPathWayDiv.className='tab-pane fade'
+})
+navTab2.addEventListener('click',()=>{
+  navTab2.className='nav-link active'
+  navSigma.className='nav-link'
+  navGT.className='nav-link'
+  navAvg.className='nav-link'
+  navTab2.ariaSelected='true'
+  navSigma.ariaSelected='false'
+  navGT.ariaSelected='false'
+  navAvg.ariaSelected='false'
+  navContentTab2Div.className='tab-pane fade show active'
+  navContentSigmaDiv.className='tab-pane fade'
+  navContentGTDiv.className='tab-pane fade'
+  navContentAvgDiv.className='tab-pane fade'
+  navPathway.className='nav-link'
+  navPathway.ariaSelected='false'
+  navContentPathWayDiv.className='tab-pane fade'
 })
 
+navPathway.addEventListener('click',()=>{
+  navTab2.className='nav-link'
+  navSigma.className='nav-link'
+  navGT.className='nav-link'
+  navAvg.className='nav-link'
+  navTab2.ariaSelected='false'
+  navSigma.ariaSelected='false'
+  navGT.ariaSelected='false'
+  navAvg.ariaSelected='false'
+  navContentTab2Div.className='tab-pane fade'
+  navContentSigmaDiv.className='tab-pane fade'
+  navContentGTDiv.className='tab-pane fade'
+  navContentAvgDiv.className='tab-pane fade'
+  navPathway.className='nav-link active'
+  navPathway.ariaSelected='true'
+  navContentPathWayDiv.className='tab-pane fade show active'
+})
+
+var pathWayGrid = document.getElementById('gene-pathway-table');
+pathWayGrid.addEventListener('change',()=>{
+  callPagerAPI();
+})
 
 var len=0;
 var generate = document.getElementById('Generate');
@@ -1048,6 +1171,7 @@ var geneRelatationTraceMap = new Map<string, any>(), traceIndex=2;
 var graphDiv = document.getElementById('canvas-div');
 //var selectGeneDiv = document.getElementById('selectGene') as HTMLSelectElement;
 selectGeneDiv.addEventListener('change',()=>{
+  var graphDiv = document.getElementById('canvas-div01');
   console.log('traces array: '+Array.from(Array(traceIndex).keys()).slice(2,traceIndex+1));
   Plotly.deleteTraces(graphDiv,Array.from(Array(traceIndex).keys()).slice(2,traceIndex+1))
   geneRelatationTraceMap = new Map<string, any>(), traceIndex=2;
@@ -1102,50 +1226,42 @@ selectGeneDiv.addEventListener('change',()=>{
 })
 a = getExp();
 b = getXandY();
+var store = require('store');
+store.set('key', 2);
+console.log(store.get('key'))
 // console.log('layout: '+b['cacng3']);
-generate.addEventListener('click', async ()=>{
+async function generateTexture(selection){
+  purgeDivs()
   console.log('app.ts || generate');
   const startTime = new Date().getTime();
   data=new Float32Array(resolution*resolution*20);
   console.log(data.slice(0,10));
   console.log('start time: '+startTime);
-  // console.log('x: '+layoutDataX.length+' y: '+layoutDataY.length+' exp: '+expressionData.length+' gene: '+geneName.length)
-  // console.log('layoutx: '+layoutDataX)
-  // console.log('layouty: '+layoutDataY)
-  // console.log('expression data: '+expressionData)
-  // console.log('gene names: '+geneName);
-  // console.log('params: '+Object.keys(params));
-  //console.log('expData: '+expData);
-  // console.log('dsfgsdg+'+Object.keys(expData));
-  // console.log('dsfgsdg+'+Object.keys(expData).length);
-  // console.log('dsfgsdg+'+Object.keys(expData[0]).length);
-  // console.log('dsfgsdg+'+expData[0].size);
-  // console.log('layoutData: '+Object.keys(layoutData[0]));
-  // console.log('layoutData: '+layoutData[0]['field1']);
-  // console.log('layoutData: '+layoutData[0][0]);
-  // console.log('layoutData: '+typeof(layoutData));
-  selection = getSelection();
+  // selection = getSelection();
   selection = Array.from(new Set(selection));
   console.log('selection'+selection.length)
   if(f==true)
     expData = preProcessExpData(expData)
     await loadExpData(selection)
-    var selectionLen = selection.length;
+    selectionLen = selection.length;
+    store.set('selectionLen',selectionLen);
     a = getExp();
+    weightsArrayMap = getExpGeneMap();
     var count=0;
-    for (const select of selection) {
+    // for (const select of selection) {
       console.log(count +" of "+selectionLen);
       count++;
       // console.log('data for each select : '+data.slice(0,10))
       console.log('select')
-      console.log(select);
+      // console.log(select);
       console.log(selection);
-      var mergedMap = mergeLayoutExpData(b,a,select);
-    if(selection[selection.length-1]==select){
-      console.log('selection: '+select);
-      lastIternation=1;
-    }
-    console.log('select '+ select)
+      var mergedMap = mergeLayoutExpData(b,a,'sampleKey');
+        // lastIternation=1;
+    // if(selection[selection.length-1]==select){
+    //   console.log('selection: '+select);
+    //   lastIternation=1;
+    // }
+    // console.log('select '+ select)
     //layoutDataMap = getExpData1(expData,layoutData,select);
     //console.log('size: '+layoutDataMap['SULT4A1'])
     var keys = Object.keys(mergedMap);
@@ -1155,6 +1271,7 @@ generate.addEventListener('click', async ()=>{
       layoutDataY = new Float32Array(len);
       expressionData = new Float32Array(len);
       nameIndex=0,xIndex=0,yIndex=0,expIndex=0;
+      summedExp=new Map<String,number>()
       for(var i=0;i<keys.length;i++){
         var row = mergedMap[keys[i]];
         //console.log('row: '+row);
@@ -1171,16 +1288,18 @@ generate.addEventListener('click', async ()=>{
     console.log('layoutx: '+layoutDataX.length)
     console.log('layouty: '+layoutDataY.length)
     console.log('expression data: '+expressionData.length)
-    var outcome=await main(expressionData, layoutDataX, layoutDataY, geneName, sigma, showGene, scaleMin, scaleMax, resolution, selection.length, lastIternation, data, selectionLen, summedExp) as unknown as Float32Array;
-    await convertPromiseToFloat32Array(outcome).then((d)=>{
-      data=d;
-      console.log('final data: '+data[0]);
-    })
+    // var outcome=await main(expressionData, layoutDataX, layoutDataY, geneName, sigma, showGene, scaleMin, scaleMax, resolution, selection.length, lastIternation, data, selectionLen, summedExp) as unknown as Float32Array;
+    await main(expressionData, layoutDataX, layoutDataY, geneName, sigma, showGene, scaleMin, scaleMax, resolution, selection.length, lastIternation, selectionLen, summedExp, weightsArrayMap) as unknown as Float32Array;
+    // await convertPromiseToFloat32Array(outcome).then((d)=>{
+    //   data=d;
+    //   console.log('final data: '+data[0]);
+    // })
+    console.log('final data: '+data.slice(0,20));
     downloadDiv1.style.display='block';
     downloadDiv2.style.display='block';
     f=false;
     lastIternation=0;
-}
+// }
 console.log('im gere')
 const endTime = new Date().getTime();
 console.log('end time: '+endTime)
@@ -1188,11 +1307,27 @@ console.log('Time taken: '+(endTime-startTime))
 console.log('heatmap data'+contourData)
 var allsigsigdata = normalizeAllSigmas(data,resolution);
 //drawPlot(data,layoutDataX,layoutDataY,expressionData,geneName,scaleMin,scaleMax,showGene)
+};
+
+generate.addEventListener('click',async ()=>{
+  lastIternation=1
+  selection = getSelection();
+  await generateTexture(selection);
 });
+
+generateTab2.addEventListener('click',async()=>{
+  lastIternation=21;
+  selection=getTab2Selection01();
+  console.log('1. '+selection)
+  await generateTexture(selection);
+  lastIternation=22;
+  selection=getTab2Selection02();
+  console.log('2. '+selection)
+  await generateTexture(selection);
+})
+
 })
 
 async function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
-
-// checkFlag();

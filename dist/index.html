@@ -13,7 +13,7 @@
     <script src="js/jquery_3.5.1_jquery.min.js"></script>
     <script src="js/bootstrap.min.js"></script>
     <script src="js/ag-grid-community.min.noStyle.js"></script>
-    <link rel="stylesheet" href="css/rangesliderstyle.css" />
+    <!-- <link rel="stylesheet" href="css/rangesliderstyle.css" /> -->
     <script src="js/rangeslider.umd.min.js"></script>
     <link
       rel="stylesheet"
@@ -34,7 +34,10 @@
   <script src="js/popper.min.js"></script>
   <script src="js/multiselect-dropdown.js" ></script>
   <script src="js/plotly-latest.min.js"></script>
-  <!-- <link rel="stylesheet" href="css/multi-select-tag.css" type="text/css"> -->
+  <link rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/ag-grid-enterprise@30.0.6/styles/ag-grid.css"/>
+    <link rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/ag-grid-enterprise@30.0.6/styles/ag-theme-alpine.css"/>
     </script>
 <script defer src="main.js"></script></head>
 <body class="p-3 mb-2 bg-secondary text-white">
@@ -197,22 +200,64 @@
                     <div id='myDiv'><!-- Plotly chart will be drawn inside this DIV --></div>
                     <div>
                         <input type="submit" value="Generate" id="Generate" class="btn btn-primary">
+                    </div><br>
+                    <hr>
+                    <div>
+                        <div id="pathway-filter-text"><h3>Pathway Filters</h3></div>
+                        <div id="pathway-filter-anchor"><a data-toggle="collapse" href="#pathway-filters" style="float:right" aria-expanded="true" aria-controls="pathway-filters">Show/hide</a></div>
+                    </div>
+                    <br><br>
+                    <div id="pathway-filters">
+                        <div id="gene-size-div">
+                            <label for="gene-size">Size of genes in PAGs</label>
+                            <input type="text" id="gene-size1" class="form-control col-md-7 h15" value="2">
+                            <input type="text" id="gene-size2" class="form-control col-md-7 h25" value="5000">
+                        </div><br>
+                        <div id="similarity-score-div">
+                            <label for="similarity-score">Similarity scores (0,1)</label>
+                            <input type="text" id="similarity-score" class="form-control col-md-7 h15" value="0.05">
+                        </div><br>
+                        <div id="overlap-genes-div">
+                            <label for="overlap-genes">Number of overlapping genes</label>
+                            <input type="text" id="overlap-genes" class="form-control col-md-7 h15" value="1">
+                        </div><br>
+                        <div id="cohesion-div">
+                            <label for="cohesion">Cohesion</label>
+                            <input type="text" id="cohesion" class="form-control col-md-7 h15" value="0">
+                        </div><br>
+                        <div id="p-value-div">
+                            <label for="p-value">p-value</label>
+                            <input type="text" id="p-value" class="form-control col-md-7 h15" value="0.05">
+                        </div><br>
+                        <div id="FDR-div">
+                            <label for="FDR">FDR</label>
+                            <input type="text" id="FDR" class="form-control col-md-7 h15" value="0.05">
+                        </div><br>
+                        <div id="data-source-div">
+                            <label for="data-source">Data Source</label>
+                            <textarea id="data-source" class="form-control col-md-10"></textarea>
+                        </div><br>
+                        <div id="send-pathway-div">
+                            <input type="submit" value="Send" id="send-pathway" class="btn btn-primary">
+                        </div>
                     </div>
                 </div>
             </div>
             <div id="plotDiv">
             <div class="col-12 text-center">
-                <div id="myGrid" class="ag-theme-alpine" style="width: 800px; overflow: auto;"></div>
-                <br><br><br><br>
                 <div id="navDiv">
                     <nav>
                         <div class="nav nav-tabs" id="nav-tab" role="tablist">
-                          <button class="nav-link active" id="nav-GT-tab" data-bs-toggle="tab" data-bs-target="#nav-home" type="button" role="tab" aria-controls="nav-home" aria-selected="true">Specific</button>
-                          <button class="nav-link" id="nav-Sigma-tab" data-bs-toggle="tab" data-bs-target="#nav-profile" type="button" role="tab" aria-controls="nav-profile" aria-selected="false">Sigma</button>
-                          <button class="nav-link" id="nav-Avg-tab" data-bs-toggle="tab" data-bs-target="#nav-contact" type="button" role="tab" aria-controls="nav-contact" aria-selected="false">Tab1</button>
-                        </div>
+                          <button class="nav-link active" id="nav-GT-tab" data-bs-toggle="tab" data-bs-target="#nav-home" type="button" role="tab" aria-controls="nav-home" aria-selected="true" onclick="document.getElementById('myGrid').style.display='block'" style="display:none">Specific</button>
+                          <button class="nav-link" id="nav-Sigma-tab" data-bs-toggle="tab" data-bs-target="#nav-profile" type="button" role="tab" aria-controls="nav-profile" aria-selected="false" onclick="document.getElementById('myGrid').style.display='block'" style="display:none">Sigma</button>
+                          <button class="nav-link" id="nav-Avg-tab" data-bs-toggle="tab" data-bs-target="#nav-contact" type="button" role="tab" aria-controls="nav-contact" aria-selected="false" onclick="document.getElementById('myGrid').style.display='block'">Basic</button>
+                          <button class="nav-link" id="nav-tab2-tab" data-bs-toggle="tab" data-bs-target="#nav-contact" type="button" role="tab" aria-controls="nav-contact" aria-selected="false" onclick="document.getElementById('myGrid').style.display='none'">Compare</button>
+                          <button class="nav-link" id="nav-pathway-tab" data-bs-toggle="tab" data-bs-target="#nav-contact" type="button" role="tab" aria-controls="nav-contact" aria-selected="false" onclick="document.getElementById('myGrid').style.display='none'">Pathway</button>
+                        </div><br>
                       </nav>
+                      <div id="myGrid" class="ag-theme-alpine" style="width: 800px; overflow: auto;"></div><br>
                       <div class="tab-content" id="nav-tabContent">
+                        <!-- specific -->
                         <div class="tab-pane fade show active" id="nav-GT" role="tabpanel" aria-labelledby="nav-GT-tab">
                             <div id="canvas-div" style="width: 720; height: 720;"></div>
                             <div id="download image div1" style="margin-left: 200px;">
@@ -223,12 +268,14 @@
                                 <input type="button" class="btn btn-primary" value="Download Image" id="download-image2" style="display:none">
                             </div>
                             </div>
+                        <!-- sigma -->
                         <div class="tab-pane fade" id="nav-Sigma" role="tabpanel" aria-labelledby="nav-Sigma-tab">
                             <div id="canvas-div1" style="width: 720; height: 720;"></div>
                             <div id="download image div3" style="margin-left: 200px;">
                                 <input type="button" class="btn btn-primary" value="Download Image" id="download-image3" style="display:none">
                             </div>
                         </div>
+                        <!-- tab1 -->
                         <div class="tab-pane fade" id="nav-Avg" role="tabpanel" aria-labelledby="nav-Avg-tab">
                             <div id="canvas-div01" style="width: 720; height: 720;"></div>
                             <br>
@@ -239,99 +286,49 @@
                             <div id="canvas-div03" style="width: 720; height: 720;"></div>
                             <div id="canvas-div04" style="width: 720; height: 720;"></div>
                         </div>
+                        <!-- tab2 -->
+                        <div class="tab-pane fade" id="nav-tab2" role="tabpanel" aria-labelledby="nav-tab2-tab">
+                            <div>
+                                <div id="myGridTab2-01" class="ag-theme-alpine"></div>
+                                <div id="myGridTab2-02" class="ag-theme-alpine"></div>
+                            </div><br>
+                            <div id="Generate button">
+                                <input type="submit" value="Generate" id="Generate-Tab2" class="btn btn-primary">
+                            </div><br>
+                            <div>
+                                <div id="canvas-tab2-01"></div>
+                                <div id="canvas-tab2-02"></div>
+                            </div><br>
+                            <div>
+                                <table id="tab2-table" style="display: none;" class="table table-striped">
+                                    <tr>
+                                        <th>Gene Name</th>
+                                        <th>X</th>
+                                        <th>Y</th>
+                                        <th>Plot1 Intensity</th>
+                                        <th>Plot2 Intensity</th>
+                                    </tr>
+                                </table>
+                                <div id="tab2-barplot02"></div><br>
+                                <div id="tab2-barplot"></div>
+                            </div>
+                        </div>
+                        <div class="tab-pane fade" id="nav-pathway" role="tabpanel" aria-labelledby="nav-pathway-tab">
+                            <div id="gene-pathway-graph">you </div>
+                            <div id="gene-pathway-table" class="ag-theme-alpine"></div>
+                        </div>
                     </div>
                       </div>
                 </div>
                 <br>
-                <script type="module">
-                    var graphDiv = document.getElementById('canvas-div01');
-                    graphDiv.addEventListener('mouseenter', ()=>{
-                        graphDiv.on('plotly_selected',function(eventData){
-                        console.log(eventData);
-                        // console.log(eventData.currentTarget.data[1].selectedpoints)
-                        // console.log(eventData.currentTarget.data[1].selectedpoints[0].x)
-                        var pt=[]
-                        var ptx=[], pty=[], pttext=[], ptout=[], ptexp=[], ptbase=[], ptcolorexp=[], ptcolorGT=[], ptoutText=[], ptexpText=[]
-                        eventData.points.forEach(function(pt) {
-                            ptx.push(pt.x);
-                            pty.push(pt.y);
-                            var currOut = pt.data.args.z[~~(pt.y)][~~(pt.x)]
-                            var currExp = pt.data.args.exp[pt.text]
-                            ptout.push(currOut)
-                            ptoutText.push(Number(currOut).toFixed(2))
-                            pttext.push(pt.text);
-                            ptexp.push(currExp)
-                            ptexpText.push(Number(currExp).toFixed(2))
-                            // ptbase.push(currOut<0?currOut:0)
-                            ptcolorexp.push(currExp<0?'blue':'orange')
-                            ptcolorGT.push(currOut<0?'blue':'orange')
-                            console.log(pt.x);
-                            console.log(pt.y);
-                            console.log(pt.text);
-                        });
-                        var barTraceOuput = [{
-                            x: pttext,
-                            y: ptout,
-                            type: 'bar',
-                            base: 0,
-                            text: ptoutText.map(String),
-                            textposition: 'auto',
-                            hoverinfo: 'none',
-                            width: 0.5,
-                            // text: pttext,
-                            marker: {color: ptcolorGT}
-                        }];
-                        var barTraceExp = [{
-                            x: pttext,
-                            y: ptexp,
-                            type: 'bar',
-                            base: 0,
-                            text: ptexpText.map(String),
-                            textposition: 'auto',
-                            hoverinfo: 'none',
-                            width: 0.5,
-                            // text: pttext,
-                            marker: {color: ptcolorexp}
-                        }];
-                        var plotLayout = {
-                            width:512,
-                            height:512,
-                            showlegend: true,
-                            legend: {
-                                x: 0.8,
-                                // xanchor: 'right',
-                                y: 1.05,
-                                bgcolor: 'E2E2E2'
-                            },
-                            font:{
-                                color:"black",
-                                size:12,
-                            }
-                            }
-                        var barsLayout1 = JSON.parse(JSON.stringify(plotLayout));
-                        barsLayout1['title']={
-                            text:'<br>Gene vs Exp',
-                            font: {
-                            size: 24,
-                            color: '#7f7f7f'
-                            },
-                            xref: 'paper',
-                        }
-                        var barsLayout2 = JSON.parse(JSON.stringify(plotLayout));
-                        barsLayout2['title']={
-                            text:'<br>Gene vs GT',
-                                font: {
-                                size: 24,
-                                color: '#7f7f7f'
-                                },
-                                xref: 'paper',
-                        }
-                        
-                        Plotly.newPlot('bar-chart-exp',barTraceExp, barsLayout1);
-                        Plotly.newPlot('bar-chart-output',barTraceOuput, barsLayout2);
-                        })
-                    })
+                <!-- <script type="module">
+                </script> -->
+                <!-- <script type="module" src="js/ag-grid-enterprise.js"> -->
+                <!-- <script type="module" src="js/ag-grid-enterprise.auto.complete.esm.js"> -->
+                <!-- <script type="module" src="js/ag-grid-enterprise.min.noStyle.js"> -->
+                <script type="module" src="https://cdn.jsdelivr.net/npm/ag-grid-enterprise@30.0.6/dist/ag-grid-enterprise.min.js">
                 </script>
+                <script src="js/plotly_events.js" type="module"></script>
                 <canvas id="webgpu-canvas" class="img-fluid" width="720" height="512" style="display:none"></canvas>
                 </div>
             <div class="col-12 alert alert-danger" id="no-webgpu" style="display:none;">
@@ -341,7 +338,7 @@
             </div>
             </div>
         <!-- </div> -->
-    
+        <!-- <script src="js/plotly_events.js"></script> -->
 </body>
 </html>
 
