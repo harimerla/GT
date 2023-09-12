@@ -60,7 +60,8 @@ export async function drawTab1Plot(hMdata, layout){
 export async function drawTab2Plot01(tab2HeatMapdata01,layout){
   console.log('inside drawTab2Plot01')
   tab2HeatMapdata01[0]['selected']=false
-  // tab2HeatMapdata01[1]['visible']=true;
+  tab2HeatMapdata01[1]['visible']=true;
+  tab2HeatMapdata01[1]['opacity']=0;
   tab2Layout = JSON.parse(JSON.stringify(layout));
   tab2Layout['margin']={
     l: 50,
@@ -82,6 +83,8 @@ export async function drawTab2Plot01(tab2HeatMapdata01,layout){
 }
 export async function drawTab2Plot02(tab2HeatMapdata02,layout){
   console.log('inside drawTab2Plot02')
+  tab2HeatMapdata02[1]['visible']=true;
+  tab2HeatMapdata02[1]['opacity']=0;
   tab2Layout = JSON.parse(JSON.stringify(layout));
   tab2Layout['margin']={
     l: 50,

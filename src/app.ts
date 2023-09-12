@@ -712,7 +712,7 @@ while(true){
       colorscale: 'Jet',
       hoverinfo:true,
       visible: 'legendonly',
-      name: 'Gene Name',
+      name: 'Gene_Name',
       args: {z:finalData, exp:summedExp}}]
     drawTab2Plot02(tab2HeatMapdata02,layout);
     // tab2HeatMapdata02=dataOnlyResult;
@@ -1018,10 +1018,10 @@ var navContentTab2Div = document.getElementById('nav-tab2') as HTMLButtonElement
 var navPathway = document.getElementById('nav-pathway-tab') as HTMLButtonElement;
 var navContentPathWayDiv = document.getElementById('nav-pathway') as HTMLButtonElement;
 navGT.addEventListener('click',()=>{
-  navGT.className='nav-link active'
-  navSigma.className='nav-link'
-  navAvg.className='nav-link'
-  navTab2.className='nav-link'
+  navGT.className='nav-item nav-link active'
+  navSigma.className='nav-item nav-link'
+  navAvg.className='nav-item nav-link'
+  navTab2.className='nav-item nav-link'
   navGT.ariaSelected='true'
   navSigma.ariaSelected='false'
   navAvg.ariaSelected='false'
@@ -1030,15 +1030,15 @@ navGT.addEventListener('click',()=>{
   navContentSigmaDiv.className='tab-pane fade'
   navContentAvgDiv.className='tab-pane fade'
   navContentTab2Div.className='tab-pane fade'
-  navPathway.className='nav-link'
+  navPathway.className='nav-item nav-link'
   navPathway.ariaSelected='false'
   navContentPathWayDiv.className='tab-pane fade'
 })
 navSigma.addEventListener('click',()=>{
-  navSigma.className='nav-link active'
-  navGT.className='nav-link'
-  navAvg.className='nav-link'
-  navTab2.className='nav-link'
+  navSigma.className='nav-item nav-link active'
+  navGT.className='nav-item nav-link'
+  navAvg.className='nav-item nav-link'
+  navTab2.className='nav-item nav-link'
   navSigma.ariaSelected='true'
   navGT.ariaSelected='false'
   navAvg.ariaSelected='false'
@@ -1047,15 +1047,15 @@ navSigma.addEventListener('click',()=>{
   navContentGTDiv.className='tab-pane fade'
   navContentAvgDiv.className='tab-pane fade'
   navContentTab2Div.className='tab-pane fade'
-  navPathway.className='nav-link'
+  navPathway.className='nav-item nav-link'
   navPathway.ariaSelected='false'
   navContentPathWayDiv.className='tab-pane fade'
 })
 navAvg.addEventListener('click',()=>{
-  navAvg.className='nav-link active'
-  navSigma.className='nav-link'
-  navGT.className='nav-link'
-  navTab2.className='nav-link'
+  navAvg.className='nav-item nav-link active'
+  navSigma.className='nav-item nav-link'
+  navGT.className='nav-item nav-link'
+  navTab2.className='nav-item nav-link'
   navAvg.ariaSelected='true'
   navSigma.ariaSelected='false'
   navGT.ariaSelected='false'
@@ -1064,15 +1064,15 @@ navAvg.addEventListener('click',()=>{
   navContentSigmaDiv.className='tab-pane fade'
   navContentGTDiv.className='tab-pane fade'
   navContentTab2Div.className='tab-pane fade'
-  navPathway.className='nav-link'
+  navPathway.className='nav-item nav-link'
   navPathway.ariaSelected='false'
   navContentPathWayDiv.className='tab-pane fade'
 })
 navTab2.addEventListener('click',()=>{
-  navTab2.className='nav-link active'
-  navSigma.className='nav-link'
-  navGT.className='nav-link'
-  navAvg.className='nav-link'
+  navTab2.className='nav-item nav-link active'
+  navSigma.className='nav-item nav-link'
+  navGT.className='nav-item nav-link'
+  navAvg.className='nav-item nav-link'
   navTab2.ariaSelected='true'
   navSigma.ariaSelected='false'
   navGT.ariaSelected='false'
@@ -1081,16 +1081,16 @@ navTab2.addEventListener('click',()=>{
   navContentSigmaDiv.className='tab-pane fade'
   navContentGTDiv.className='tab-pane fade'
   navContentAvgDiv.className='tab-pane fade'
-  navPathway.className='nav-link'
+  navPathway.className='nav-item nav-link'
   navPathway.ariaSelected='false'
   navContentPathWayDiv.className='tab-pane fade'
 })
 
 navPathway.addEventListener('click',()=>{
-  navTab2.className='nav-link'
-  navSigma.className='nav-link'
-  navGT.className='nav-link'
-  navAvg.className='nav-link'
+  navTab2.className='nav-item nav-link'
+  navSigma.className='nav-item nav-link'
+  navGT.className='nav-item nav-link'
+  navAvg.className='nav-item nav-link'
   navTab2.ariaSelected='false'
   navSigma.ariaSelected='false'
   navGT.ariaSelected='false'
@@ -1099,14 +1099,9 @@ navPathway.addEventListener('click',()=>{
   navContentSigmaDiv.className='tab-pane fade'
   navContentGTDiv.className='tab-pane fade'
   navContentAvgDiv.className='tab-pane fade'
-  navPathway.className='nav-link active'
+  navPathway.className='nav-item nav-link active'
   navPathway.ariaSelected='true'
   navContentPathWayDiv.className='tab-pane fade show active'
-})
-
-var pathWayGrid = document.getElementById('gene-pathway-table');
-pathWayGrid.addEventListener('change',()=>{
-  callPagerAPI();
 })
 
 var len=0;

@@ -79,16 +79,25 @@ option{
 	/* float: right; */
 }
 
+#pathway-scatter{
+	width: 90%;
+}
+
 #gene-pathway-graph{
 	/* max-width: 45%; */
-	width: 59%;
-	float: left;
+	width: 90%;
+	max-width: 90%;
+	/* height: 40%;
+	max-height: 40%; */
+	/* float: left; */
 }
 #gene-pathway-table{
 	/* max-width: 45%; */
-	width: 39%;
+	/* width: 39%;
 	margin-left: 61%;
+	max-width: 39%; */
 	/* float: right; */
+	width: 90%;
 }
 #pathway-filter-text{
 	/* max-widh: 45%; */
@@ -98,8 +107,12 @@ option{
 #pathway-filter-anchor{
 	/* max-width: 45%; */
 	float: right;
-	margin-top: 8px;
+	margin-top: 10px;
 	/* float: right; */
+}
+#pathwayResultInfo{
+	/* margin-top: 20%; */
+	width: 90%;
 }
 
 .range-slider{

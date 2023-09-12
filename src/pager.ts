@@ -24,6 +24,8 @@ async function runPager(genes, sources, olap, sim, fdr, organism) {
     try {
       const response = await axios.post('http://discovery.informatics.uab.edu/PAGER/index.php/geneset/pagerapi', null, {
         params: params,
+        method: 'POST',
+        headers: {'Access-Control-Allow-Origin':'*'}
       });
       
       console.log(response.data.length);

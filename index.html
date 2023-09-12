@@ -204,7 +204,7 @@
                     <hr>
                     <div>
                         <div id="pathway-filter-text"><h3>Pathway Filters</h3></div>
-                        <div id="pathway-filter-anchor"><a data-toggle="collapse" href="#pathway-filters" style="float:right" aria-expanded="true" aria-controls="pathway-filters">Show/hide</a></div>
+                        <div id="pathway-filter-anchor"><a data-toggle="collapse" href="#pathway-filters" style="float:right" aria-expanded="false" aria-controls="pathway-filters">Show/hide</a></div>
                     </div>
                     <br><br>
                     <div id="pathway-filters">
@@ -313,9 +313,15 @@
                                 <div id="tab2-barplot"></div>
                             </div>
                         </div>
-                        <div class="tab-pane fade" id="nav-pathway" role="tabpanel" aria-labelledby="nav-pathway-tab">
-                            <div id="gene-pathway-graph">you </div>
-                            <div id="gene-pathway-table" class="ag-theme-alpine"></div>
+                        <div class="tab-pane fade" id="nav-pathway" role="tabpanel" aria-labelledby="nav-pathway-tab" style="width:90%">
+                            <div>
+                            <div id="gene-pathway-table" class="ag-theme-alpine"></div><br>
+                            <input type="submit" value="Generate" id="Generate_Pathway" class="btn btn-primary" style="display:none; margin: auto">
+                            <div id="gene-pathway-graph"></div><br>
+                            <div id="pathway-scatter"></div><br>
+                            </div><br>
+                            <div id="pathwayResultInfo" class="ag-theme-alpine"></div><br>
+                            <div id="selectedResultBarPlot"></div>
                         </div>
                     </div>
                       </div>
