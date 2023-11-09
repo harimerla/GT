@@ -2,8 +2,9 @@
   "name": "webgpu-webpack-starter",
   "version": "1.0.0",
   "description": "A starter template for WebGPU development the uses webpack to build the code and manage dependencies.",
-  "main": "app.js",
+  "main":"app.js",
   "scripts": {
+    "start":"webpack serve --open",
     "build": "webpack",
     "serve": "webpack server",
     "deploy": "webpack --mode=production"
@@ -48,6 +49,7 @@
     "colormap": "^2.3.2",
     "csv-parser": "^3.0.0",
     "csvtojson": "^2.0.10",
+    "cytoscape-cise": "^1.0.0",
     "deno": "^0.1.1",
     "fs": "^0.0.1-security",
     "interpolate-arrays": "^1.0.4",

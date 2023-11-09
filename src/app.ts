@@ -712,7 +712,7 @@ while(true){
       colorscale: 'Jet',
       hoverinfo:true,
       visible: 'legendonly',
-      name: 'Gene_Name',
+      name: 'Gene Name',
       args: {z:finalData, exp:summedExp}}]
     drawTab2Plot02(tab2HeatMapdata02,layout);
     // tab2HeatMapdata02=dataOnlyResult;
@@ -1011,97 +1011,140 @@ var navGT = document.getElementById('nav-GT-tab') as HTMLButtonElement;
 var navSigma = document.getElementById('nav-Sigma-tab') as HTMLButtonElement;
 var navAvg = document.getElementById('nav-Avg-tab') as HTMLButtonElement;
 var navTab2 = document.getElementById('nav-tab2-tab') as HTMLButtonElement;
+var navNetwork = document.getElementById('nav-network-tab') as HTMLButtonElement;
 var navContentGTDiv = document.getElementById('nav-GT') as HTMLButtonElement;
 var navContentSigmaDiv = document.getElementById('nav-Sigma') as HTMLButtonElement;
 var navContentAvgDiv = document.getElementById('nav-Avg') as HTMLButtonElement;
 var navContentTab2Div = document.getElementById('nav-tab2') as HTMLButtonElement;
+var navContentNetworkDiv = document.getElementById('nav-network') as HTMLButtonElement;
 var navPathway = document.getElementById('nav-pathway-tab') as HTMLButtonElement;
 var navContentPathWayDiv = document.getElementById('nav-pathway') as HTMLButtonElement;
 navGT.addEventListener('click',()=>{
-  navGT.className='nav-item nav-link active'
-  navSigma.className='nav-item nav-link'
-  navAvg.className='nav-item nav-link'
-  navTab2.className='nav-item nav-link'
+  navGT.className='nav-item active'
+  navSigma.className='nav-item'
+  navAvg.className='nav-item'
+  navTab2.className='nav-item'
+  navNetwork.className='nav-item'
   navGT.ariaSelected='true'
   navSigma.ariaSelected='false'
   navAvg.ariaSelected='false'
   navTab2.ariaSelected='false'
+  navNetwork.ariaSelected='false'
   navContentGTDiv.className='tab-pane fade show active'
   navContentSigmaDiv.className='tab-pane fade'
   navContentAvgDiv.className='tab-pane fade'
   navContentTab2Div.className='tab-pane fade'
-  navPathway.className='nav-item nav-link'
+  navContentNetworkDiv.className='tab-pane fade'
+  navPathway.className='nav-item'
   navPathway.ariaSelected='false'
   navContentPathWayDiv.className='tab-pane fade'
 })
 navSigma.addEventListener('click',()=>{
-  navSigma.className='nav-item nav-link active'
-  navGT.className='nav-item nav-link'
-  navAvg.className='nav-item nav-link'
-  navTab2.className='nav-item nav-link'
+  navSigma.className='nav-item active'
+  navGT.className='nav-item'
+  navAvg.className='nav-item'
+  navTab2.className='nav-item'
+  navNetwork.className='nav-item'
   navSigma.ariaSelected='true'
   navGT.ariaSelected='false'
   navAvg.ariaSelected='false'
   navTab2.ariaSelected='false'
+  navNetwork.ariaSelected='false'
   navContentSigmaDiv.className='tab-pane fade show active'
   navContentGTDiv.className='tab-pane fade'
   navContentAvgDiv.className='tab-pane fade'
   navContentTab2Div.className='tab-pane fade'
-  navPathway.className='nav-item nav-link'
+  navContentNetworkDiv.className='tab-pane fade'
+  navPathway.className='nav-item'
   navPathway.ariaSelected='false'
   navContentPathWayDiv.className='tab-pane fade'
 })
 navAvg.addEventListener('click',()=>{
-  navAvg.className='nav-item nav-link active'
-  navSigma.className='nav-item nav-link'
-  navGT.className='nav-item nav-link'
-  navTab2.className='nav-item nav-link'
+  navAvg.className='nav-item active'
+  navSigma.className='nav-item'
+  navGT.className='nav-item'
+  navTab2.className='nav-item'
+  navNetwork.className='nav-item'
   navAvg.ariaSelected='true'
   navSigma.ariaSelected='false'
   navGT.ariaSelected='false'
   navTab2.ariaSelected='false'
+  navNetwork.ariaSelected='false'
   navContentAvgDiv.className='tab-pane fade show active'
   navContentSigmaDiv.className='tab-pane fade'
   navContentGTDiv.className='tab-pane fade'
   navContentTab2Div.className='tab-pane fade'
-  navPathway.className='nav-item nav-link'
+  navContentNetworkDiv.className='tab-pane fade'
+  navPathway.className='nav-item'
   navPathway.ariaSelected='false'
   navContentPathWayDiv.className='tab-pane fade'
 })
 navTab2.addEventListener('click',()=>{
-  navTab2.className='nav-item nav-link active'
-  navSigma.className='nav-item nav-link'
-  navGT.className='nav-item nav-link'
-  navAvg.className='nav-item nav-link'
+  navTab2.className='nav-item active'
+  navSigma.className='nav-item'
+  navGT.className='nav-item'
+  navAvg.className='nav-item'
+  navNetwork.className='nav-item'
   navTab2.ariaSelected='true'
   navSigma.ariaSelected='false'
   navGT.ariaSelected='false'
   navAvg.ariaSelected='false'
+  navNetwork.ariaSelected='false'
   navContentTab2Div.className='tab-pane fade show active'
   navContentSigmaDiv.className='tab-pane fade'
   navContentGTDiv.className='tab-pane fade'
   navContentAvgDiv.className='tab-pane fade'
-  navPathway.className='nav-item nav-link'
+  navContentNetworkDiv.className='tab-pane fade'
+  navPathway.className='nav-item'
   navPathway.ariaSelected='false'
   navContentPathWayDiv.className='tab-pane fade'
 })
 
 navPathway.addEventListener('click',()=>{
-  navTab2.className='nav-item nav-link'
-  navSigma.className='nav-item nav-link'
-  navGT.className='nav-item nav-link'
-  navAvg.className='nav-item nav-link'
+  navTab2.className='nav-item'
+  navSigma.className='nav-item'
+  navGT.className='nav-item'
+  navAvg.className='nav-item'
+  navNetwork.className='nav-item'
   navTab2.ariaSelected='false'
   navSigma.ariaSelected='false'
   navGT.ariaSelected='false'
   navAvg.ariaSelected='false'
+  navNetwork.ariaSelected='false'
   navContentTab2Div.className='tab-pane fade'
   navContentSigmaDiv.className='tab-pane fade'
   navContentGTDiv.className='tab-pane fade'
   navContentAvgDiv.className='tab-pane fade'
-  navPathway.className='nav-item nav-link active'
+  navContentNetworkDiv.className='tab-pane fade'
+  navPathway.className='nav-item active'
   navPathway.ariaSelected='true'
   navContentPathWayDiv.className='tab-pane fade show active'
+})
+
+navNetwork.addEventListener('click',()=>{
+  navGT.className='nav-item'
+  navSigma.className='nav-item'
+  navAvg.className='nav-item'
+  navTab2.className='nav-item'
+  navNetwork.className='nav-item active'
+  navGT.ariaSelected='false'
+  navSigma.ariaSelected='false'
+  navAvg.ariaSelected='false'
+  navTab2.ariaSelected='false'
+  navNetwork.ariaSelected='true'
+  navContentGTDiv.className='tab-pane fade'
+  navContentSigmaDiv.className='tab-pane fade'
+  navContentAvgDiv.className='tab-pane fade'
+  navContentTab2Div.className='tab-pane fade'
+  navContentNetworkDiv.className='tab-pane fade show active'
+  navPathway.className='nav-item'
+  navPathway.ariaSelected='false'
+  navContentPathWayDiv.className='tab-pane fade'
+})
+
+var pathWayGrid = document.getElementById('gene-pathway-table');
+pathWayGrid.addEventListener('change',()=>{
+  callPagerAPI();
 })
 
 var len=0;

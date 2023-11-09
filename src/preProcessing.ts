@@ -190,6 +190,7 @@ export function getData(map, index){
 }
 
 export async function getAGPLOT(selection: string[]){
+  console.log('count count')
   // var path = './csv/clinical_Data_GBM.csv';
   // var data, fileContent;
   // var reader = new FileReader();

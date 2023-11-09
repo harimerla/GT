@@ -4,10 +4,16 @@ const path = require("path");
 module.exports = {
     entry: "./src/app.ts",
     mode: "development",
-    output: {
-        filename: "main.js",
-        path: path.resolve(__dirname, "dist"),
-    },
+    // output: {
+    //     filename: "main.js",
+    //     path: path.resolve(__dirname, "dist"),
+    // },
+    devServer: {
+        static: './dist',
+      },
+    optimization: {
+        runtimeChunk: 'single',
+      },
     resolve: {
         extensions: ['.tsx', '.js', '.ts'],
         alias: {

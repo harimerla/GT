@@ -39,26 +39,45 @@
     <link rel="stylesheet"
       href="https://cdn.jsdelivr.net/npm/ag-grid-enterprise@30.0.6/styles/ag-theme-alpine.css"/>
     </script>
-<script defer src="main.js"></script></head>
-<body class="p-3 mb-2 bg-secondary text-white">
+    <script src="js/cola.min.js"></script>
+<script defer src="runtime.js"></script><script defer src="main.js"></script></head>
+<body class="p-1 bg-white text-dark">
     <!-- <div class="container" style="width: 100%;"> -->
-        <div id="container" class="container-fluid w-90 p-3 mb-2 bg-dark text-white">
-            <div id="filterDiv" class="p-3 mb-2 bg-secondary text-white">
+        <div id="container" class="container-fluid w-90 p-3 mb-2 bg-white text-dark">
+            <div class="fixed-top bg-light">
+                <nav class="navbar navbar-expand-lg navbar-light">
+                    <a class="navbar-brand"><h1>GeneTerrain</h1></a>
+                    <div class="collapse navbar-collapse" id="navbarSupportedContent" id="nav-tab" role="tablist">
+                    <ul class="navbar-nav mx-auto">
+                      <li class="px-5"><a class="nav-item active" id="nav-GT-tab" data-bs-toggle="tab" data-bs-target="#nav-home" type="button" role="tab" aria-controls="nav-home" aria-selected="true" onclick="document.getElementById('myGrid').style.display='block'" style="display:none">Specific</a></li>
+                      <li class="px-5"><a class="nav-item" id="nav-Sigma-tab" data-bs-toggle="tab" data-bs-target="#nav-profile" type="button" role="tab" aria-controls="nav-profile" aria-selected="false" onclick="document.getElementById('myGrid').style.display='block'" style="display:none">Sigma</a></li>
+                      <li class="px-5 btn btn-light"><a class="nav-item" id="nav-Avg-tab" data-bs-toggle="tab" data-bs-target="#nav-contact" type="button" role="tab" aria-controls="nav-contact" aria-selected="false" onclick="document.getElementById('myGrid').style.display='block'">Basic</a></li>
+                      <li class="px-5 btn btn-light"><a class="nav-item" id="nav-tab2-tab" data-bs-toggle="tab" data-bs-target="#nav-contact" type="button" role="tab" aria-controls="nav-contact" aria-selected="false" onclick="document.getElementById('myGrid').style.display='none'">Compare</a></li>
+                      <li class="px-5 btn btn-light"><a class="nav-item" id="nav-pathway-tab" data-bs-toggle="tab" data-bs-target="#nav-contact" type="button" role="tab" aria-controls="nav-contact" aria-selected="false" onclick="document.getElementById('myGrid').style.display='none'">Pathway</a></li>
+                      <li class="px-5 btn btn-light"><a class="nav-item" id="nav-network-tab" data-bs-toggle="tab" data-bs-target="#nav-contact" type="button" role="tab" aria-controls="nav-contact" aria-selected="false" onclick="document.getElementById('myGrid').style.display='none'">Network</a></li>
+                      <li class="px-5 btn btn-light"><a class="nav-item" id="nav-help-tab" data-bs-toggle="tab" data-bs-target="#nav-contact" type="button" role="tab" aria-controls="nav-contact" aria-selected="false" onclick="document.getElementById('myGrid').style.display='none'">Help</a></li>
+                    </ul>
+                    </div><br>
+                  </nav>
+            </div><br><br><br>
+            <div id="filterDiv" class="bg-white text-dark border bg-light">
                 <!-- file upload -->
+                <h3 class="p-1 list-group-item-secondary"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-filter" viewBox="0 0 16 16">
+                    <path d="M6 10.5a.5.5 0 0 1 .5-.5h3a.5.5 0 0 1 0 1h-3a.5.5 0 0 1-.5-.5zm-2-3a.5.5 0 0 1 .5-.5h7a.5.5 0 0 1 0 1h-7a.5.5 0 0 1-.5-.5zm-2-3a.5.5 0 0 1 .5-.5h11a.5.5 0 0 1 0 1h-11a.5.5 0 0 1-.5-.5z"/>
+                  </svg> Filters</h3>
                 <div id="filters div" class="container">
-                    <h3>Filters</h3>
                     <br>
-                    <div style="display:none">
-                        <label for="expression">Choose Expression File</label>
+                    <div style="display:none" class="border">
+                        <label class="p-1 list-group-item-secondary" for="expression">Choose Expression File</label>
                         <input type="file" name="Expression" id="expression">
                     </div>
-                    <div style="display:none">
-                        <label for="layout">Choose Layout File</label>
+                    <div style="display:none" class="border">
+                        <label class="p-1 list-group-item-secondary" for="layout">Choose Layout File</label>
                         <input type="file" name="Layout" id="layout">
                     </div>
-                    <div id="chooseDiv">
-                    <label for="patient">Choose Cancer Type</label><br>
-                         <select name="patient" id="patient">
+                    <div id="chooseDiv" class="border">
+                    <label class="p-1 list-group-item-secondary" for="patient">Choose Cancer Type</label><br>
+                         <select name="patient" id="patient" style="width:183px;" multiselect-search="false" multiselect-select-all="false" multiselect-max-items="3">
                             <option value="GBM">GBM</option>
                             <option value="Breast">BRCA</option>
                             <option value="Breast">COAD</option>
@@ -70,7 +89,7 @@
                     </div>
                         <br>
                     <!-- <div>
-                        <label for="patient">Choose Patient</label>
+                        <label class="p-1 list-group-item-secondary" for="patient">Choose Patient</label>
                          <select name="patient" id="patient">
                             <option value="select">select</option>
                             <option value="0">0</option>
@@ -78,19 +97,21 @@
                         </select>
                         <input type="text" id="patient" value="0">
                     </div>-->
-                    <div id="sigma_div">
-                        <label for="sigma_range" class="form-label">Sigma range (0, 1)</label><br>
+                    <div id="sigma_div" class="border">
+                        <label class="p-1 list-group-item-secondary" for="sigma_range" class="form-label">Sigma range (0, 1)</label><br>
                         <input type="range" class="form-range" min="0" max="1" step="0.05" id="sigma_range" value="0.5" oninput="this.nextElementSibling.value = this.value">
                         <!-- <input type="text" class="form-range" min="0" max="1" step="0.05" id="sigma_range" value="1" oninput="this.nextElementSibling.value = this.value"> -->
                         <output>0.5</output>
                     </div>
                     <br>
-                    <div style="margin-bottom:10px"><Output>Scale (-20, 20)</Output></div>
-                    <div class="parentScale" id="parentScale">
-                        <output id="minText">-3</output>
-                        <div id="range-slider-example" class="scale">
+                    <div id="scale_div" class="border">
+                        <div style="margin-bottom:10px" class="border"><Output class="p-1 list-group-item-secondary" id="scaleOutput" style="width: 100%;">Scale (-20, 20)</Output></div>
+                        <div class="p-1 parentScale" id="parentScale">
+                            <output id="minText">-3</output>
+                            <div id="range-slider-example" class="scale">
+                            </div>
+                            <output id="maxText">3</output>
                         </div>
-                        <output id="maxText">3</output>
                     </div>
                     <script>rangeSlider(document.querySelector('#range-slider-example'),{
                         min:-20,
@@ -106,22 +127,22 @@
                         }
                     });</script>
                     <div>
-                        <!-- <label for="scale-min" class="form-label">Scale Min</label>
+                        <!-- <label class="p-1 list-group-item-secondary" for="scale-min" class="form-label">Scale Min</label>
                         <input type="range" id="scale-min" min="-10" max="0" step="0.5" value="-10" oninput="this.nextElementSibling.value = this.value">
                         <output>-10</output>
                         <br>
-                        <label for="scale-max" class="form-label">Scale Max</label>
+                        <label class="p-1 list-group-item-secondary" for="scale-max" class="form-label">Scale Max</label>
                         <input type="range" id="scale-max" min="0" max="10" step="0.5" value="0" oninput="this.nextElementSibling.value = this.value">
                         <output>0</output> -->
                         <!-- <div style="width: 50%;float:left;" id="scale_min_div">
-                            <label style="margin:auto">Scale Min</label>
+                            <label class="p-1 list-group-item-secondary" style="margin:auto">Scale Min</label>
                             <div>
                             <output id="scaleMinOutput">-3</output>
                             <input class="multi-range" min="-10" max="0" step="1" type="range" value="-3" id="scale-min" oninput="document.getElementById('scaleMinOutput').value = this.value"/>
                             </div>
                         </div>
                         <div style="margin-left: 50%;" id="scale_max_div">
-                            <label style="margin: auto;">Scale Max</label>
+                            <label class="p-1 list-group-item-secondary" style="margin: auto;">Scale Max</label>
                             <input class="multi-range" min="0" max="10" step="1" type="range" value="3" id="scale-max" oninput="this.nextElementSibling.value = this.value"/>
                             <output>3</output>
                         </div> -->
@@ -173,20 +194,20 @@
                         <a href="#" id="a3" style="display:none"></a>
                     </div>
                     <br>
-                    <div id="pixelDiv">
-                        <label for="pixel">Resolution (100, 1000)</label><br>
+                    <div id="pixelDiv" class="border">
+                        <label class="p-1 list-group-item-secondary" for="pixel">Resolution (100, 1000)</label><br>
                         <input type="range" id="pixel" min="100" max="1000" value="250" step="50" oninput="this.nextElementSibling.value = this.value">
                         <output>250</output>
                     </div>
                     <br>
-                    <div id="showgene_div" style="display: none">
-                        <label for="show gene" class="form-label">Show Gene</label>
+                    <div id="showgene_div" style="display: none" class="border">
+                        <label class="p-1 list-group-item-secondary" for="show gene" class="form-label">Show Gene</label>
                         <input type="checkbox" id="show gene">
                     </div>
                     <br>
                     <!-- <select class="select" multiple data-mdb-filter="true"> -->
-                        <div>
-                            <label>Select Gene/Genes</label><br>
+                        <div class="border">
+                            <label class="p-1 list-group-item-secondary">Select Gene/Genes</label><br>
                             <!-- <select id="selectGene" name="field1" multiple onchange="console.log(Array.from(this.selectedOptions).map(x=>x.value??x.text))" multiselect-hide-x="false"> -->
                             <select name="field2" style="color:black" id="selectGene" multiple multiselect-search="true" multiselect-select-all="true" multiselect-max-items="3" onchange="console.log(this.selectedOptions)">
                             <!-- <option value="sult4a1">sult4a1</option>
@@ -208,33 +229,33 @@
                     </div>
                     <br><br>
                     <div id="pathway-filters">
-                        <div id="gene-size-div">
-                            <label for="gene-size">Size of genes in PAGs</label>
+                        <div id="gene-size-div" class="border">
+                            <label class="p-1 list-group-item-secondary" for="gene-size">Size of genes in PAGs</label>
                             <input type="text" id="gene-size1" class="form-control col-md-7 h15" value="2">
                             <input type="text" id="gene-size2" class="form-control col-md-7 h25" value="5000">
                         </div><br>
-                        <div id="similarity-score-div">
-                            <label for="similarity-score">Similarity scores (0,1)</label>
+                        <div id="similarity-score-div" class="border">
+                            <label class="p-1 list-group-item-secondary" for="similarity-score">Similarity scores (0,1)</label>
                             <input type="text" id="similarity-score" class="form-control col-md-7 h15" value="0.05">
                         </div><br>
-                        <div id="overlap-genes-div">
-                            <label for="overlap-genes">Number of overlapping genes</label>
+                        <div id="overlap-genes-div" class="border">
+                            <label class="p-1 list-group-item-secondary" for="overlap-genes">Number of overlapping genes</label>
                             <input type="text" id="overlap-genes" class="form-control col-md-7 h15" value="1">
                         </div><br>
-                        <div id="cohesion-div">
-                            <label for="cohesion">Cohesion</label>
+                        <div id="cohesion-div" class="border">
+                            <label class="p-1 list-group-item-secondary" for="cohesion">Cohesion</label>
                             <input type="text" id="cohesion" class="form-control col-md-7 h15" value="0">
                         </div><br>
-                        <div id="p-value-div">
-                            <label for="p-value">p-value</label>
+                        <div id="p-value-div" class="border">
+                            <label class="p-1 list-group-item-secondary" for="p-value">p-value</label>
                             <input type="text" id="p-value" class="form-control col-md-7 h15" value="0.05">
                         </div><br>
-                        <div id="FDR-div">
-                            <label for="FDR">FDR</label>
+                        <div id="FDR-div" class="border">
+                            <label class="p-1 list-group-item-secondary" for="FDR">FDR</label>
                             <input type="text" id="FDR" class="form-control col-md-7 h15" value="0.05">
                         </div><br>
-                        <div id="data-source-div">
-                            <label for="data-source">Data Source</label>
+                        <div id="data-source-div" class="border">
+                            <label class="p-1 list-group-item-secondary" for="data-source">Data Source</label>
                             <textarea id="data-source" class="form-control col-md-10"></textarea>
                         </div><br>
                         <div id="send-pathway-div">
@@ -246,15 +267,6 @@
             <div id="plotDiv">
             <div class="col-12 text-center">
                 <div id="navDiv">
-                    <nav>
-                        <div class="nav nav-tabs" id="nav-tab" role="tablist">
-                          <button class="nav-link active" id="nav-GT-tab" data-bs-toggle="tab" data-bs-target="#nav-home" type="button" role="tab" aria-controls="nav-home" aria-selected="true" onclick="document.getElementById('myGrid').style.display='block'" style="display:none">Specific</button>
-                          <button class="nav-link" id="nav-Sigma-tab" data-bs-toggle="tab" data-bs-target="#nav-profile" type="button" role="tab" aria-controls="nav-profile" aria-selected="false" onclick="document.getElementById('myGrid').style.display='block'" style="display:none">Sigma</button>
-                          <button class="nav-link" id="nav-Avg-tab" data-bs-toggle="tab" data-bs-target="#nav-contact" type="button" role="tab" aria-controls="nav-contact" aria-selected="false" onclick="document.getElementById('myGrid').style.display='block'">Basic</button>
-                          <button class="nav-link" id="nav-tab2-tab" data-bs-toggle="tab" data-bs-target="#nav-contact" type="button" role="tab" aria-controls="nav-contact" aria-selected="false" onclick="document.getElementById('myGrid').style.display='none'">Compare</button>
-                          <button class="nav-link" id="nav-pathway-tab" data-bs-toggle="tab" data-bs-target="#nav-contact" type="button" role="tab" aria-controls="nav-contact" aria-selected="false" onclick="document.getElementById('myGrid').style.display='none'">Pathway</button>
-                        </div><br>
-                      </nav>
                       <div id="myGrid" class="ag-theme-alpine" style="width: 800px; overflow: auto;"></div><br>
                       <div class="tab-content" id="nav-tabContent">
                         <!-- specific -->
@@ -313,6 +325,7 @@
                                 <div id="tab2-barplot"></div>
                             </div>
                         </div>
+                        <!-- Pathway -->
                         <div class="tab-pane fade" id="nav-pathway" role="tabpanel" aria-labelledby="nav-pathway-tab" style="width:90%">
                             <div>
                             <div id="gene-pathway-table" class="ag-theme-alpine"></div><br>
@@ -321,7 +334,124 @@
                             <div id="pathway-scatter"></div><br>
                             </div><br>
                             <div id="pathwayResultInfo" class="ag-theme-alpine"></div><br>
-                            <div id="selectedResultBarPlot"></div>
+                            <div id="selectedResultBarPlot" style="width:90%"></div>
+                            <br>
+                            <div class="grid-container">
+                                <!-- Row 1 -->
+                                <div class="row">
+                                    <!-- <div class="grid-item col-sm p-1">
+                                        <label for="input1">Sort Pathway by</label><br>
+                                        <select id="input1" class="form-select form-select-lg mb-3 w-50 h-50 pathway-selection" name="input1">
+                                            <option value="option1">Option 1</option>
+                                            <option value="option2">Option 2</option>
+                                            <option value="option3">Option 3</option>
+                                        </select>
+                                    </div> -->
+                                    <!-- <div class="grid-item col-sm p-1">
+                                        <label for="input2">x-axis</label><br>
+                                        <select id="input2" class="form-select form-select-lg mb-3 w-50 h-50 pathway-selection" name="input2">
+                                            <option value="option1">Option 1</option>
+                                            <option value="option2">Option 2</option>
+                                            <option value="option3">Option 3</option>
+                                        </select>
+                                    </div> -->
+                                </div>                         
+                                <!-- Row 2 -->
+                                <div class="row">
+                                    <div class="grid-item col-sm p-1">
+                                        <label for="input3">Color</label><br>
+                                        <select id="input3" class="form-select form-select-lg mb-3 w-50 h-50 pathway-selection" name="Color">
+                                            <option value="Bluered">Bluered</option>
+                                            <option value="Jet">Jet</option>
+                                            <option value="Viridis">Viridis</option>
+                                            <option value="Roblox Color Codes">Roblox Color Codes</option>
+                                            <!-- <option value="Shades of Black">Shades of Black</option> -->
+                                        </select>
+                                    </div>
+                                    <!-- <div class="grid-item col-sm p-1">
+                                        <label for="input4">Size</label><br>
+                                        <select id="input4" class="form-select form-select-lg mb-3 w-50 h-50 pathway-selection" name="input4">
+                                            <option value="option1">Option 1</option>
+                                            <option value="option2">Option 2</option>
+                                            <option value="option3">Option 3</option>
+                                        </select>
+                                    </div> -->
+                                    <div class="grid-item col-sm p-1">
+                                        <label for="input5">Font Size</label><br>
+                                        <input id="input5" name="Font Size" type="number" class="form-select mb-3 w-50 h-50 pathway-selection" value="12" min="3" max="18" step="1">
+                                    </div>
+                                    <div class="grid-item col-sm p-1">
+                                        <label for="input6">Circle Size</label><br>
+                                        <select id="input6" class="form-select form-select-lg mb-3 w-50 h-50 pathway-selection" name="Circle Size">
+                                            <option value="1">1</option>
+                                            <option value="3">3</option>
+                                            <option value="5">5</option>
+                                            <option value="8">8</option>
+                                            <option value="10">10</option>
+                                            <option value="15">15</option>
+                                            <option value="20">20</option>
+                                            <option value="25">25</option>
+                                            <option value="30">30</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <!-- Row 3 -->
+                                <div class="row">
+                                    <!-- <div class="grid-item col-sm p-1">
+                                        <label for="input7">Chart Type</label><br>
+                                        <select id="input7" class="form-select form-select-lg mb-3 w-50 h-50 pathway-selection" name="input7">
+                                            <option value="option1">Option 1</option>
+                                            <option value="option2">Option 2</option>
+                                            <option value="option3">Option 3</option>
+                                        </select>
+                                    </div> -->
+                                    <div class="grid-item col-sm p-1">
+                                        <label for="input8">Aspect Ratio</label><br>
+                                        <select id="input8" class="form-select form-select-lg mb-3 w-50 h-50 pathway-selection" name="Aspect Ratio">
+                                            <option value="668">1</option>
+                                            <option value="708">1.5</option>
+                                            <option value="738">2</option>
+                                            <option value="768">2.3</option>
+                                            <option value="800">2.5</option>
+                                            <option value="838">3</option>
+                                            <option value="868">3.5</option>
+                                            <option value="908">4</option>
+                                        </select>
+                                    </div>
+                                    <div class="grid-item col-sm p-1">
+                                        <label for="input9">Plot Theme</label><br>
+                                        <select id="input9" class="form-select form-select-lg mb-3 w-50 h-50 pathway-selection" name="Plot Theme">
+                                            <option value="#A9A9A9">Dark</option>
+                                            <option value="#D3D3D3">Gray</option>
+                                            <option value="#808080">Classic</option>
+                                            <option value="#948D99">Minimal</option>
+                                        </select>
+                                    </div>
+                                    <div class="grid-item col-sm p-1">
+                                        <label for="input10">Sort by no of Genes</label><br>
+                                        <select id="input10" class="form-select form-select-lg mb-3 w-50 h-50 pathway-selection" name="Sort by no of Genes">
+                                            <option value="None">None</option>
+                                            <option value="false">Ascending</option>
+                                            <option value="true">Descending</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <!-- Row 4 -->
+                                <div class="row">
+                                    <div class="grid-item col-sm p-1">
+                                        <br>
+                                        <input type="submit" value="Download" id="dowload-pathway-plot" class="btn btn-primary">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- Network -->
+                        <div class="tab-pane fade" id="nav-network" role="tabpanel" aria-labelledby="nav-network-tab" style="width:90%">
+                            <div class="grid-item col-sm p-1">
+                                <label for="edgeCutOff">Edge Cutoff</label>
+                                <input id="edgeCutOff" name="Edge Cutoff" type="number" class="form-select mb-3 w-25 h-50 pathway-selection" value="0" min="0" max="1" step="0.05">
+                            </div>
+                            <div id="cy"></div>
                         </div>
                     </div>
                       </div>
@@ -345,6 +475,7 @@
             </div>
         <!-- </div> -->
         <!-- <script src="js/plotly_events.js"></script> -->
+        <script src="js/cytoscape_cdn.js" integrity="sha512-rOsRHy2O7kykGotH99Bi0+LyynL6rfQpaMiKOwYa1K1jYAFksJUwXE1gE6Relgo88g6lQ/uf8NaWeyzi1T53Zg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 </body>
 </html>
 
