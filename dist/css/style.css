@@ -34,7 +34,30 @@
   float:left;
   margin: auto;
   height: 6px;
-  width: 150px;
+  width: 220px;
+}
+
+#sigma_range,#pixel{
+	width: 220px;
+	float:left;
+  	margin: auto;
+  	height: 6px;
+	margin-left: 4px;
+}
+
+/* same as select gene dimmensions */
+#patient{
+	width:270px;
+	display: inline-block;
+	padding: 2px 5px 0px 5px;
+	border-radius: 4px;
+	border: solid 1px #ced4da;
+	background-color: white;
+	position: relative;
+	background-image: url("data:'image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23343a40' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M2 5l6 6 6-6'/%3e%3c/svg%3e");
+	background-repeat: no-repeat;
+	background-position: right 0.75rem center;
+	background-size: 16px 12px;
 }
 
 #selectGene{
@@ -165,7 +188,7 @@ input{
 
 #range-slider-example .range-slider__range {
   height: 6px;
-  width: 10px;
+  width: 30px;
   background-color: #007bff;
   border-color: #007bff;
 }

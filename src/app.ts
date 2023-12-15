@@ -11,6 +11,7 @@ import {exportToHtml,getExpData1, getAGPLOT, preProcessExpData, getSelection,mer
 import {loadPlotData,loadLayoutData, loadExpData, getExp, getXandY, getGenes,loadGeneRelation,getGeneReationMapName,getExpGeneMap} from './rest'
 import {drawSpecificPlot,drawAllSigmaPlot,drawTab1Plot,changeSigma,rotate90DegreesCounterClockwise, purgeDivs,drawTab2Plot02,drawTab2Plot01,updateExpDataInPlot} from './plotlyCode'
 import {callPagerAPI} from './pager'
+import {react_select_options} from './selectOptions'
 import {extractBarPlot} from './plotly_events'
 var store = require('store')
 // import RangeSlider from '@spreadtheweb/multi-range-slider';
@@ -224,7 +225,15 @@ function normalize(arr: Float32Array){
 }
 
 async function main(expressionData: Float32Array, layoutDataX: Float32Array, layoutDataY: Float32Array, geneName: Float32Array, sigmaa=1, showGene: boolean, scaleMin: number, scaleMax: number, resolution: number, sampleSize: number, lastIternation:number, selectionLen:number, summedExp:Map<String, number>,weightsArrayMap:Map<String, any>) {
-  var adapter = await navigator.gpu.requestAdapter();
+  // var adapter = await navigator.gpu.requestAdapter();
+  var adapter;
+  if (navigator.gpu) {
+    adapter = await navigator.gpu.requestAdapter();
+    // Rest of the code
+ } else {
+    console.error('WebGPU not supported in this environment.');
+ }
+ 
   var device = await adapter.requestDevice();
 
   var canvas = document.getElementById("webgpu-canvas") as HTMLCanvasElement;
@@ -737,7 +746,7 @@ return dataOnlyResult;
 // });
 var contourData, heatMapdata, tab2HeatMapdata01,tab2HeatMapdata02, tab2FinalData01,tab2FinalData02;;
 var tab2WeightsArrayMap01, tab2WeightsArrayMap02, tab2Exp01, tab2Exp02;
-var resolution=256, selectionLen=0, selectionLen1=0, selectionLen2=0;
+var resolution=256, selectionLen=0, selectionLen1=0, selectionLen2=0, selectedDataset="TCGA";
 var data=new Float32Array(resolution*resolution*20);
 var tab2data01=new Float32Array(resolution*resolution*20);
 var tab2data02=new Float32Array(resolution*resolution*20);
@@ -830,11 +839,11 @@ layout.addEventListener('change', ()=>{
 
 var selection:string[]=[];
 getAGPLOT(selection)
-// var selectDiv = document.getElementById('patient') as HTMLSelectElement;
-// selectDiv.addEventListener('change', ()=>{
-//   console.log(selectDiv.value);
-//   selection = +selectDiv.value;
-// })
+var selectDiv = document.getElementById('patient') as HTMLSelectElement;
+selectDiv.addEventListener('change', ()=>{
+  console.log(selectDiv.value);
+  selectedDataset = selectDiv.value;
+})
 
 var xIndex=0,yIndex=0,nameIndex=0,expIndex=0;
 // function checkFlag() {
@@ -1280,7 +1289,8 @@ async function generateTexture(selection){
   console.log('selection'+selection.length)
   if(f==true)
     expData = preProcessExpData(expData)
-    await loadExpData(selection)
+    // selection = ["IVYGAP_304950336"]
+    await loadExpData(selectedDataset,selection)
     selectionLen = selection.length;
     store.set('selectionLen',selectionLen);
     a = getExp();
@@ -1323,9 +1333,10 @@ async function generateTexture(selection){
           summedExp[row[0]]+=row[3]
       }
     console.log('x: '+layoutDataX.length+' y: '+layoutDataY.length+' exp: '+expressionData.length+' gene: '+geneName.length)
-    console.log('layoutx: '+layoutDataX.length)
-    console.log('layouty: '+layoutDataY.length)
-    console.log('expression data: '+expressionData.length)
+    console.log('layoutx: '+layoutDataX)
+    console.log('layouty: '+layoutDataY)
+    console.log('expression data: '+expressionData)
+    console.log('gene name: '+geneName)
     // var outcome=await main(expressionData, layoutDataX, layoutDataY, geneName, sigma, showGene, scaleMin, scaleMax, resolution, selection.length, lastIternation, data, selectionLen, summedExp) as unknown as Float32Array;
     await main(expressionData, layoutDataX, layoutDataY, geneName, sigma, showGene, scaleMin, scaleMax, resolution, selection.length, lastIternation, selectionLen, summedExp, weightsArrayMap) as unknown as Float32Array;
     // await convertPromiseToFloat32Array(outcome).then((d)=>{
@@ -1365,6 +1376,8 @@ generateTab2.addEventListener('click',async()=>{
 })
 
 })
+
+react_select_options();
 
 async function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));

@@ -56,6 +56,7 @@ style.innerHTML = `
 .multiselect-dropdown-list{
   padding:2px;
   height: 15rem;
+  width:250px;
   overflow-y:auto;
   overflow-x: hidden;
 }
@@ -90,6 +91,7 @@ function MultiselectDropdown(options){
   var config={
     search:true,
     height:'15rem',
+    width:'250px',
     placeholder:'select',
     txtSelected:'selected',
     txtAll:'All',
@@ -119,7 +121,7 @@ function MultiselectDropdown(options){
     el.style.display='none';
     el.parentNode.insertBefore(div,el.nextSibling);
     var listWrap=newEl('div',{class:'multiselect-dropdown-list-wrapper'});
-    var list=newEl('div',{class:'multiselect-dropdown-list',style:{height:config.height}});
+    var list=newEl('div',{class:'multiselect-dropdown-list',style:{height:config.height, width:config.width}});
     var search=newEl('input',{class:['multiselect-dropdown-search'].concat([config.searchInput?.class??'form-control']),style:{width:'100%',display:el.attributes['multiselect-search']?.value==='true'?'block':'none'},placeholder:config.txtSearch});
     listWrap.appendChild(search);
     div.appendChild(listWrap);
@@ -130,7 +132,7 @@ function MultiselectDropdown(options){
       
       if(el.attributes['multiselect-select-all']?.value=='true'){
         var op=newEl('div',{class:'multiselect-dropdown-all-selector'})
-        var ic=newEl('input',{type:'checkbox'});
+        var ic=newEl('<span>input',{type:'checkbox'}+'</span>');
         op.appendChild(ic);
         op.appendChild(newEl('label',{text:config.txtAll}));
   
@@ -159,7 +161,7 @@ function MultiselectDropdown(options){
 
       Array.from(el.options).map(o=>{
         var op=newEl('div',{class:o.selected?'checked':'',optEl:o})
-        var ic=newEl('input',{type:'checkbox',checked:o.selected});
+        var ic=newEl('<span>input',{type:'checkbox',checked:o.selected}+'</span>');
         op.appendChild(ic);
         op.appendChild(newEl('label',{text:o.text}));
 

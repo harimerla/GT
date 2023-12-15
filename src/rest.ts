@@ -11,6 +11,18 @@ var genes=[];
 var geneRelationMapName= new Map<string, any>();
 var geneRelationMapScore= new Map<string, any>();
 var expGeneMap = new Map<string, any>();
+var plotDataURLS = ['https://discovery.informatics.uab.edu/apex/gtkb/sample/all?offset=',
+                    'https://discovery.informatics.uab.edu/apex/gtkb/clinical_data/GBM/CGGA/MRNA_301?offset=',
+                    'https://discovery.informatics.uab.edu/apex/gtkb/clinical_data/GBM/CGGA/MRNA_325?offset=',
+                    'https://discovery.informatics.uab.edu/apex/gtkb/clinical_data/GBM/CGGA/GLSS?offset=']
+
+var expURLS = {
+    "TCGA":"https://discovery.informatics.uab.edu/apex/gtkb/gene_exp/cleaned_gbm/",
+  "GSM":"https://discovery.informatics.uab.edu/apex/gtkb/gene_exp/cleaned_gbm/CGGA_Illumina_HiSeq_2000/",
+  "CGGA":"https://discovery.informatics.uab.edu/apex/gtkb/gene_exp/cleaned_gbm/CGGA_Illumina_HiSeq_2000_or_2500/",
+  "IVYGAP": "https://discovery.informatics.uab.edu/apex/gtkb/gene_exp/cleaned_gbm/IvyGap/",
+  "GLSS":"https://discovery.informatics.uab.edu/apex/gtkb/gene_exp/cleaned_gbm/GLSS/"
+}
 export async function loadAllExpData(){
 
     const url = 'https://discovery.informatics.uab.edu/apex/gtkb/gene_exp/all?offset='
@@ -38,13 +50,18 @@ export async function loadAllExpData(){
     return [];
 }
 
-export async function loadExpData(sampleIDS: string[]){
+export async function loadExpData(selectedDataset: string, sampleIDS: string[]){
     expOutput=[]
     console.log('rest.ts || loadExpData || Start');
     const startTime = new Date().getTime();
     const urls = [];
-    const urll = 'https://discovery.informatics.uab.edu/apex/gtkb/gene_exp/cleaned_gbm/';
+    // const urll = 'https://discovery.informatics.uab.edu/apex/gtkb/gene_exp/cleaned_gbm/';
+    var urll;
     for(var sample of sampleIDS){
+        if(sample.search('_')!=-1)
+            urll = expURLS[sample.split("_")[0]]
+        else
+            urll = expURLS[sample.split("-")[0]]
         urls.push(urll+sample)
         // urls.push(urll+sample+'?offset=10000')
         //urls.push(urll+sample+'?offset=20000')
@@ -124,23 +141,26 @@ export async function loadLayoutData(){
 
 export async function loadPlotData(){
 
-    var url = 'https://discovery.informatics.uab.edu/apex/gtkb/sample/all?offset='
-    var i=0,limit=100;
-    while(true){
-        var updatedURL=url+(i++*limit).toString();
-        var jsonData;
-        const plotData = async ()=>{
-            const response = await fetch(updatedURL,{method:'GET'});
-            jsonData = await response.json();
-        }
-        await plotData().then(()=>{
-            setPlotData(jsonData['items'])
-            // console.log((i++*limit).toString())
-            // console.log(jsonData['items'])
-        })
-        if(jsonData==undefined || jsonData['count']==0){
-            // console.log('reason :'+jsonData);
-            break;
+    // var url = 'https://discovery.informatics.uab.edu/apex/gtkb/sample/all?offset='
+    for(var urlIndex in plotDataURLS){
+        var url = plotDataURLS[urlIndex]
+        var i=0,limit=10000;
+        while(true){
+            var updatedURL=url+(i++*limit).toString();
+            var jsonData;
+            const plotData = async ()=>{
+                const response = await fetch(updatedURL,{method:'GET'});
+                jsonData = await response.json();
+            }
+            await plotData().then(()=>{
+                setPlotData(jsonData['items'])
+                // console.log((i++*limit).toString())
+                // console.log(jsonData['items'])
+            })
+            if(jsonData==undefined || jsonData['count']==0){
+                // console.log('reason :'+jsonData);
+                break;
+            }
         }
     }
     return [];
@@ -237,9 +257,11 @@ export function getXandY(){
 }
 export function getAllExp(){
     var expMap = new Map<string, any>();
+    // console.log(expOutput)
     for(var i=0;i<expOutput.length;i++){
         expMap[expOutput[i].sampleid]=expOutput[i];
     }
+    // console.log(expMap)
     return expMap;
 }
 export function getExp(){
@@ -268,6 +290,7 @@ export function getExp(){
         }
     }
     store.set('expGeneMap', expGeneMap);
+    // console.log(expMap)
     return expMap;
 }
 export function getExpGeneMap(){

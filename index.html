@@ -77,9 +77,9 @@
                     </div>
                     <div id="chooseDiv" class="border">
                     <label class="p-1 list-group-item-secondary" for="patient">Choose Cancer Type</label><br>
-                         <select name="patient" id="patient" style="width:183px;" multiselect-search="false" multiselect-select-all="false" multiselect-max-items="3">
+                    <select name="patient" id="patient" style="width:270px" multiple multiselect="false" multiselect-search="false" multiselect-select-all="false" multiselect-max-items="3" onchange="console.log(this.selectedOptions)">
                             <option value="GBM">GBM</option>
-                            <option value="Breast">BRCA</option>
+                            <option value="CGGA">CGGA</option>
                             <option value="Breast">COAD</option>
                             <option value="Breast">UCEC</option>
                             <option value="Breast">KIRC</option>
@@ -209,7 +209,7 @@
                         <div class="border">
                             <label class="p-1 list-group-item-secondary">Select Gene/Genes</label><br>
                             <!-- <select id="selectGene" name="field1" multiple onchange="console.log(Array.from(this.selectedOptions).map(x=>x.value??x.text))" multiselect-hide-x="false"> -->
-                            <select name="field2" style="color:black" id="selectGene" multiple multiselect-search="true" multiselect-select-all="true" multiselect-max-items="3" onchange="console.log(this.selectedOptions)">
+                            <select name="field2" style="color:black; width:270px" id="selectGene" multiple multiselect-search="true" multiselect-select-all="true" multiselect-max-items="3" onchange="console.log(this.selectedOptions)">
                             <!-- <option value="sult4a1">sult4a1</option>
                             <option value="cyp46a1">cyp46a1</option>
                             <option value="anxa5">anxa5</option>

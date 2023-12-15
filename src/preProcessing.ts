@@ -98,6 +98,7 @@ export function mergeLayoutExpData(layoutMap: Map<string,any>, expMap:Map<string
       // console.log(row);
     }
   }
+  console.log(map);
   return map;
 }
 export function preProcessExpData(expData){
@@ -206,22 +207,51 @@ export async function getAGPLOT(selection: string[]){
   //   console.error(error);
   // });
   // var rowData = data;
-  const columnDefs = [
-    { field: 'id', hide: true,},
-    { field: 'SampleID',checkboxSelection: true, filter: 'agSetColumnFilter'},
-    { field: 'Overal_Survival_Days', filter:'agNumberColumnFilter'},
-    { field: 'Overal_Survival_Status', filter:'agNumberColumnFilter'},
-    { field: 'GBM_Subtype', filter: 'agSetColumnFilter'},
-    { field: 'Age_at_GBM_Diagnosis', filter:'agNumberColumnFilter' },
-  ];
-  
+  // const columnDefs = [
+  //   { field: 'id', hide: true,},
+  //   { field: 'SampleID',checkboxSelection: true, filter: 'agSetColumnFilter'},
+  //   { field: 'Overal_Survival_Days', filter:'agNumberColumnFilter'},
+  //   { field: 'Overal_Survival_Status', filter:'agNumberColumnFilter'},
+  //   { field: 'Subtype', filter: 'agSetColumnFilter'},
+  //   { field: 'Age', filter:'agNumberColumnFilter'},
+  //   { field: 'Type', filter:'agSetColumnFilter'},
+  // ];
+  const columnDefs = []
   // specify the data
   var rowData = []
   var rowSamples = await getPlotData();
   // console.log('row data: '+rowSamples);
+  var column_names_set = new Set()
+  var numerical_columns = ['age', 'overal_survival_days']
+  var ignore_columns = ['dataset_id', 'disease_name']
   for(var row of rowSamples){
-    rowData.push({id:row.id, SampleID:row.sampleid, Overal_Survival_Days:row.overal_survival__days_, Overal_Survival_Status:row.overal_survival_status,GBM_Subtype:row.gbm_subtype, Age_at_GBM_Diagnosis:row.age_at_gbm_diagnosis})
+    column_names_set=new Set([...column_names_set, ...Object.keys(row)]);
+    var type;
+    if(row.sampleid.search('_')==-1)
+      type=row.sampleid.split('-')[0]
+    else
+      type=row.sampleid.split('_')[0]
+    var temp = row;
+    temp['Type']=type
+    rowData.push(temp)
+    // rowData.push({id:row.id, SampleID:row.sampleid, Overal_Survival_Days:row.overal_survival_days, Overal_Survival_Status:row.overal_survival_status,Subtype:row.subtype, Age:row.age, Type:type})
   }
+  for(var name of column_names_set){
+    if(name=='sampleid')
+      columnDefs.push({field:name,checkboxSelection: true, filter: 'agSetColumnFilter' })
+    else if(name=='id' || name=='Id')
+      columnDefs.push({field:name, hide:true,suppressFiltersToolPanel: true, })
+    else if(numerical_columns.includes(name+'')){
+      columnDefs.push({field:name, filter: 'agNumberColumnFilter' })
+    }
+    else if(ignore_columns.includes(name+'')){
+      continue
+    }
+    else
+      columnDefs.push({field:name, filter: 'agSetColumnFilter' })
+  }
+  // columnDefs.push({ field: 'id', hide: true})
+  columnDefs.push({ field: 'Type', filter:'agSetColumnFilter'})
   // var rowData = []
   // var fields = Object.keys(data[0]);
   // for(var i=1;i<data.length;i++){
@@ -261,25 +291,42 @@ export async function getAGPLOT(selection: string[]){
     },
     animateRows: true,
     // sideBar: {id:'filters',hiddenByDefault:true},
+    // sideBar: {
+    //   toolPanels: [
+    //       {
+    //           id: 'columns',
+    //           labelDefault: 'Columns',
+    //           labelKey: 'columns',
+    //           iconKey: 'columns',
+    //           toolPanel: 'agColumnsToolPanel',
+    //       },
+    //       {
+    //           id: 'filters',
+    //           labelDefault: 'Filters',
+    //           labelKey: 'filters',
+    //           iconKey: 'filter',
+    //           toolPanel: 'agFiltersToolPanel',
+    //       }
+    //   ],
+    //   defaultToolPanel: 'columns',
+    //   hiddenByDefault:true
+    // },
+    // sideBar: 'filters',
+    suppressMaxHeight: true,
     sideBar: {
       toolPanels: [
-          {
-              id: 'columns',
-              labelDefault: 'Columns',
-              labelKey: 'columns',
-              iconKey: 'columns',
-              toolPanel: 'agColumnsToolPanel',
+        {
+          id: 'filters',
+          labelDefault: 'Filters',
+          labelKey: 'filters',
+          iconKey: 'filter',
+          toolPanel: 'agFiltersToolPanel',
+          toolPanelParams: {
+            suppressExpandAll: true,
+            suppressFilterSearch: true,
           },
-          {
-              id: 'filters',
-              labelDefault: 'Filters',
-              labelKey: 'filters',
-              iconKey: 'filter',
-              toolPanel: 'agFiltersToolPanel',
-          }
+        },
       ],
-      defaultToolPanel: 'columns',
-      hiddenByDefault:true
     },
     groupSelectsChildren: true,
     suppressHorizontalScroll: true,
@@ -318,7 +365,22 @@ export async function getAGPLOT(selection: string[]){
       filter: 'agGroupColumnFilter',
     },
     animateRows: true,
-    sideBar: 'filters',
+    // sideBar: 'filters',
+    sideBar: {
+      toolPanels: [
+        {
+          id: 'filters',
+          labelDefault: 'Filters',
+          labelKey: 'filters',
+          iconKey: 'filter',
+          toolPanel: 'agFiltersToolPanel',
+          toolPanelParams: {
+            suppressExpandAll: true,
+            suppressFilterSearch: true,
+          },
+        },
+      ],
+    },
     groupSelectsChildren: true,
     suppressHorizontalScroll: true,
     defaultColDef: {
@@ -356,7 +418,22 @@ export async function getAGPLOT(selection: string[]){
       filter: 'agGroupColumnFilter',
     },
     animateRows: true,
-    sideBar: 'filters',
+    // sideBar: 'filters',
+    sideBar: {
+      toolPanels: [
+        {
+          id: 'filters',
+          labelDefault: 'Filters',
+          labelKey: 'filters',
+          iconKey: 'filter',
+          toolPanel: 'agFiltersToolPanel',
+          toolPanelParams: {
+            suppressExpandAll: true,
+            suppressFilterSearch: true,
+          },
+        },
+      ],
+    },
     groupSelectsChildren: true,
     suppressHorizontalScroll: true,
     defaultColDef: {
@@ -394,7 +471,7 @@ export async function getAGPLOT(selection: string[]){
     //selection.push(selectedRows[selectedRows.length-1]['SampleID'])
     selection=[]
     for(var row of selectedRows){
-      selection.push(row['SampleID'])
+      selection.push(row['sampleid'])
     }
     // console.log('updated selection: '+selection)
     setSelection(selection)
@@ -407,7 +484,7 @@ export async function getAGPLOT(selection: string[]){
     const selectedRows = tab2GridOptions1.api.getSelectedRows();
     selection=[]
     for(var row of selectedRows){
-      selection.push(row['SampleID'])
+      selection.push(row['sampleid'])
     }
     setTab2Selection01(selection)
   })
@@ -416,10 +493,12 @@ export async function getAGPLOT(selection: string[]){
     const selectedRows = tab2GridOptions2.api.getSelectedRows();
     selection=[]
     for(var row of selectedRows){
-      selection.push(row['SampleID'])
+      selection.push(row['sampleid'])
     }
     setTab2Selection02(selection)
   })
+
+  // gridOptions.api.setSideBarVisible(false);
   // gridDiv.scrollTo(0, gridDiv.scrollHeight)
   // gridDiv.style.height = 40.36*rowData.length+'px';
   // gridDiv.style.overflow = 'scroll';
