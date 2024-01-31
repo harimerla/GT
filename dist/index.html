@@ -8,7 +8,7 @@
                            integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm"
                            crossorigin="anonymous"> -->
 
-    <title>WebGPU Webpack Starter</title>
+    <title>GeneTerrain</title>
     <!-- <link rel="stylesheet" href="bootstap/css/bootstrap.min.css" type="text/html"> -->
     <script src="js/jquery_3.5.1_jquery.min.js"></script>
     <script src="js/bootstrap.min.js"></script>
@@ -38,8 +38,131 @@
       href="https://cdn.jsdelivr.net/npm/ag-grid-enterprise@30.0.6/styles/ag-grid.css"/>
     <link rel="stylesheet"
       href="https://cdn.jsdelivr.net/npm/ag-grid-enterprise@30.0.6/styles/ag-theme-alpine.css"/>
+    <link rel="stylesheet" href="css/prism.css">
+
     </script>
     <script src="js/cola.min.js"></script>
+    <style>
+
+        .img-comp-container {
+          position: relative;
+          height: 800px; /*should be the same height as the images*/
+          width: 1000px;
+          margin-left:30%;
+        }
+        
+        .img-comp-img {
+          /* display: block; */
+          position: absolute;
+          width: auto;
+          height: auto;
+          overflow:hidden;
+        }
+        
+        .img {
+            /* display:block; */
+            vertical-align:middle;
+        }
+
+        .img-comp-slider {
+          position: absolute;
+          z-index:9;
+          cursor: ew-resize;
+          /*set the appearance of the slider:*/
+          width: 40px;
+          height: 40px;
+          background-color: #2196F3;
+          opacity: 0.7;
+          border-radius: 50%;
+        }
+        </style>
+        <script>
+        function initComparisons() {
+          var x, i;
+          /*find all elements with an "overlay" class:*/
+          x = document.getElementsByClassName("img-comp-overlay");
+          
+          for (i = 0; i < x.length; i++) {
+            /*once for each "overlay" element:
+            pass the "overlay" element as a parameter when executing the compareImages function:*/
+            compareImages(x[i]);
+          }
+          function compareImages(img) {
+            var slider1, clicked = 0, w, h;
+            /*get the width and height of the img element*/
+            w = img.children[0].width;
+            h = img.children[0].height;
+            /*set the width of the img element to 50%:*/
+            img.style.width = (w / 2) + "px";
+            /*create slider:*/
+            slider1 = document.createElement("DIV");
+            slider1.setAttribute("class", "img-comp-slider");
+            // slider1.setAttribute('id', "img-comp-slider-div")
+            // var slider1div = document.getElementById("img-comp-slider")
+            /*insert slider*/
+            img.parentElement.insertBefore(slider1, img);
+            /*position the slider in the middle:*/
+            //alert(w+" "+h);
+            slider1.style.top = h/2-20+"px";
+            slider1.style.left = w/2-20+"px";
+            /*execute a function when the mouse button is pressed:*/
+            slider1.addEventListener("mousedown", slideReady);
+            /*and another function when the mouse button is released:*/
+            window.addEventListener("mouseup", slideFinish);
+            /*or touched (for touch screens:*/
+            slider1.addEventListener("touchstart", slideReady);
+            /*and released (for touch screens:*/
+            window.addEventListener("touchend", slideFinish);
+            function slideReady(e) {
+              /*prevent any other actions that may occur when moving over the image:*/
+              e.preventDefault();
+              /*the slider is now clicked and ready to move:*/
+              clicked = 1;
+              /*execute a function when the slider is moved:*/
+              window.addEventListener("mousemove", slideMove);
+              window.addEventListener("touchmove", slideMove);
+            }
+            function slideFinish() {
+              /*the slider is no longer clicked:*/
+              clicked = 0;
+            }
+            function slideMove(e) {
+              var pos;
+              /*if the slider is no longer clicked, exit this function:*/
+              if (clicked == 0) return false;
+              /*get the cursor's x position:*/
+              pos = getCursorPos(e)
+              /*prevent the slider from being positioned outside the image:*/
+              if (pos < 0) pos = 0;
+              if (pos > w) pos = w;
+              /*execute a function that will resize the overlay image according to the cursor:*/
+              slide(pos);
+            }
+            function getCursorPos(e) {
+              var a, x = 0;
+              e = (e.changedTouches) ? e.changedTouches[0] : e;
+              /*get the x positions of the image:*/
+              a = img.getBoundingClientRect();
+              /*calculate the cursor's x coordinate, relative to the image:*/
+              x = e.pageX - a.left;
+              /*consider any page scrolling:*/
+              x = x - window.pageXOffset;
+              return x;
+            }
+            function slide(x) {
+              /*resize the image:*/
+              img.style.width = x + "px";
+              /*position the slider:*/
+              slider1.style.left = img.offsetWidth - (slider1.offsetWidth / 2) + "px";
+            }
+          }
+        }
+        </script>
+        <script> 
+            $(function(){
+              $("#chatbot-container").load("html/chat.html"); 
+            });
+            </script> 
 <script defer src="runtime.js"></script><script defer src="main.js"></script></head>
 <body class="p-1 bg-white text-dark">
     <!-- <div class="container" style="width: 100%;"> -->
@@ -55,6 +178,8 @@
                       <li class="px-5 btn btn-light"><a class="nav-item" id="nav-tab2-tab" data-bs-toggle="tab" data-bs-target="#nav-contact" type="button" role="tab" aria-controls="nav-contact" aria-selected="false" onclick="document.getElementById('myGrid').style.display='none'">Compare</a></li>
                       <li class="px-5 btn btn-light"><a class="nav-item" id="nav-pathway-tab" data-bs-toggle="tab" data-bs-target="#nav-contact" type="button" role="tab" aria-controls="nav-contact" aria-selected="false" onclick="document.getElementById('myGrid').style.display='none'">Pathway</a></li>
                       <li class="px-5 btn btn-light"><a class="nav-item" id="nav-network-tab" data-bs-toggle="tab" data-bs-target="#nav-contact" type="button" role="tab" aria-controls="nav-contact" aria-selected="false" onclick="document.getElementById('myGrid').style.display='none'">Network</a></li>
+                      <li class="px-5 btn btn-light"><a class="nav-item" id="nav-comp-before-after-tab" data-bs-toggle="tab" data-bs-target="#nav-contact" type="button" role="tab" aria-controls="nav-contact" aria-selected="false" onclick="document.getElementById('myGrid').style.display='none'">Slider GT</a></li>
+                      <li class="px-5 btn btn-light"><a class="nav-item" id="nav-api-tab" data-bs-toggle="tab" data-bs-target="#nav-contact" type="button" role="tab" aria-controls="nav-contact" aria-selected="false" onclick="document.getElementById('myGrid').style.display='none'">API</a></li>
                       <li class="px-5 btn btn-light"><a class="nav-item" id="nav-help-tab" data-bs-toggle="tab" data-bs-target="#nav-contact" type="button" role="tab" aria-controls="nav-contact" aria-selected="false" onclick="document.getElementById('myGrid').style.display='none'">Help</a></li>
                     </ul>
                     </div><br>
@@ -77,7 +202,7 @@
                     </div>
                     <div id="chooseDiv" class="border">
                     <label class="p-1 list-group-item-secondary" for="patient">Choose Cancer Type</label><br>
-                    <select name="patient" id="patient" style="width:270px" multiple multiselect="false" multiselect-search="false" multiselect-select-all="false" multiselect-max-items="3" onchange="console.log(this.selectedOptions)">
+                    <!-- <select name="patient" id="patient" style="width:270px" multiple multiselect="false" multiselect-search="false" multiselect-select-all="false" multiselect-max-items="3" onchange="console.log(this.selectedOptions)">
                             <option value="GBM">GBM</option>
                             <option value="CGGA">CGGA</option>
                             <option value="Breast">COAD</option>
@@ -85,7 +210,8 @@
                             <option value="Breast">KIRC</option>
                             <option value="Breast">LUAD</option>
                             <option value="Breast">LUSC</option>
-                        </select>
+                        </select> -->
+                    <div id="patient" style="width: 250px;"></div>
                     </div>
                         <br>
                     <!-- <div>
@@ -200,23 +326,26 @@
                         <output>250</output>
                     </div>
                     <br>
+                    <!-- using this div to trigger compare tab plotly selected genes event dont change blindly dude -->
                     <div id="showgene_div" style="display: none" class="border">
                         <label class="p-1 list-group-item-secondary" for="show gene" class="form-label">Show Gene</label>
-                        <input type="checkbox" id="show gene">
+                        <input type="text" id="show gene" value="">
+                        <input type="text" id="show gene2" value="document.getElementById('show gene').value">
                     </div>
                     <br>
                     <!-- <select class="select" multiple data-mdb-filter="true"> -->
                         <div class="border">
                             <label class="p-1 list-group-item-secondary">Select Gene/Genes</label><br>
                             <!-- <select id="selectGene" name="field1" multiple onchange="console.log(Array.from(this.selectedOptions).map(x=>x.value??x.text))" multiselect-hide-x="false"> -->
-                            <select name="field2" style="color:black; width:270px" id="selectGene" multiple multiselect-search="true" multiselect-select-all="true" multiselect-max-items="3" onchange="console.log(this.selectedOptions)">
+                            <!-- <select name="field2" style="color:black; width:270px" id="selectGene" multiple multiselect-search="true" multiselect-select-all="true" multiselect-max-items="3" onchange="console.log(this.selectedOptions)"> -->
                             <!-- <option value="sult4a1">sult4a1</option>
                             <option value="cyp46a1">cyp46a1</option>
                             <option value="anxa5">anxa5</option>
                             <option value="nmnat2">nmnat2</option>
                             <option value="palm">palm</option>
                             <option value="cd48">cd48</option> -->
-                            </select>
+                            <!-- </select> -->
+                            <div id="selectGene" style="width: 250px;"></div>
                         </div><br>
                     <div id='myDiv'><!-- Plotly chart will be drawn inside this DIV --></div>
                     <div>
@@ -453,6 +582,32 @@
                             </div>
                             <div id="cy"></div>
                         </div>
+                        <div class="tab-pane fade" id="nav-comp-before-after" role="tabpanel" aria-labelledby="nav-comp-before-after-tab" style="width:90%">
+                            <div class="img-comp-container" style="display:none" id="img-comp-container-id">
+                                <p>Click and slide the blue slider to compare two images:</p>
+                                <div class="img-comp-img">
+                                    <img src="images/image1.jpeg" id="compareImage1" width="700" height="700">
+                                </div>
+                                <div class="img-comp-img img-comp-overlay">
+                                    <img src="images/image2.jpeg" id="compareImage2" width="700" height="700">
+                                </div>
+                            </div>
+                            <script>
+                            /*Execute a function that will execute an image compare function for each element with the img-comp-overlay class:*/
+                            initComparisons();
+                            </script>
+                        </div>
+                        <div class="tab-pane fade" id="nav-api" role="tabpanel" aria-labelledby="nav-api-tab" style="width:90%">
+                            <!-- <div id="search-container">
+                                <input type="text" id="search-box" placeholder="Enter your search term">
+                                <button id="search-button" class="btn btn-primary">Search</button>
+                            </div>
+                        
+                            <div id="result-container">
+                                Result content will go here
+                            </div> -->
+                            <div id="chatbot-container"></div>
+                        </div>
                     </div>
                       </div>
                 </div>
@@ -464,7 +619,7 @@
                 <!-- <script type="module" src="js/ag-grid-enterprise.min.noStyle.js"> -->
                 <script type="module" src="https://cdn.jsdelivr.net/npm/ag-grid-enterprise@30.0.6/dist/ag-grid-enterprise.min.js">
                 </script>
-                <script src="js/plotly_events.js" type="module"></script>
+                <script src="js/plotly_events.js" type = "text/javascript"></script>
                 <canvas id="webgpu-canvas" class="img-fluid" width="720" height="512" style="display:none"></canvas>
                 </div>
             <div class="col-12 alert alert-danger" id="no-webgpu" style="display:none;">
@@ -476,6 +631,7 @@
         <!-- </div> -->
         <!-- <script src="js/plotly_events.js"></script> -->
         <script src="js/cytoscape_cdn.js" integrity="sha512-rOsRHy2O7kykGotH99Bi0+LyynL6rfQpaMiKOwYa1K1jYAFksJUwXE1gE6Relgo88g6lQ/uf8NaWeyzi1T53Zg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+        <script src="js/prism.js"></script>
 </body>
 </html>
 

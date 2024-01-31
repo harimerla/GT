@@ -11,7 +11,8 @@ import {exportToHtml,getExpData1, getAGPLOT, preProcessExpData, getSelection,mer
 import {loadPlotData,loadLayoutData, loadExpData, getExp, getXandY, getGenes,loadGeneRelation,getGeneReationMapName,getExpGeneMap} from './rest'
 import {drawSpecificPlot,drawAllSigmaPlot,drawTab1Plot,changeSigma,rotate90DegreesCounterClockwise, purgeDivs,drawTab2Plot02,drawTab2Plot01,updateExpDataInPlot} from './plotlyCode'
 import {callPagerAPI} from './pager'
-import {react_select_options} from './selectOptions'
+import {react_select_options_cancer_type, react_select_options_select_genes} from './selectOptions'
+import {Chat} from './chat'
 import {extractBarPlot} from './plotly_events'
 var store = require('store')
 // import RangeSlider from '@spreadtheweb/multi-range-slider';
@@ -500,11 +501,11 @@ pass.setBindGroup(0, computeUniformBindGroup);
 pass.dispatchWorkgroups(width*height/16);
 
 pass.end();
-console.log('height: '+height+" width+"+width+" image bytelength: "+zeroimg.byteLength)
+// console.log('height: '+height+" width+"+width+" image bytelength: "+zeroimg.byteLength)
 
 encoder.copyBufferToBuffer(texBuff,0,resultBuff, 0, resultBuff.size);
 encoder.copyBufferToBuffer(dataValuesBuff,0,dataOnlyResultBuff, 0, dataOnlyResultBuff.size);
-console.log('height: '+height+" width+"+width+" image bytelength: "+zeroimg.byteLength)
+//console.log('height: '+height+" width+"+width+" image bytelength: "+zeroimg.byteLength)
 device.queue.submit([encoder.finish()]);
 
 
@@ -512,7 +513,7 @@ await resultBuff.mapAsync(GPUMapMode.READ);
 await dataOnlyResultBuff.mapAsync(GPUMapMode.READ);
 const result = new Float32Array(resultBuff.getMappedRange().slice(0,resultBuff.size));
 const dataOnlyResult = new Float32Array(dataOnlyResultBuff.getMappedRange().slice(0,dataOnlyResultBuff.size));
-console.log('data only result: '+dataOnlyResult);
+console.log('data only result: '+dataOnlyResult.slice(0,5));
 //console.log('reslut: '+result);
 resultBuff.unmap();
 
@@ -526,7 +527,7 @@ resultBuff.unmap();
 // link.click();
 // console.log('output'+result[result.length-1]);
 var min=10000.0, max=-100000.0;
-console.log(dataOnlyResult.slice(0,5))
+//console.log(dataOnlyResult.slice(0,5))
 for(var i=0;i<dataOnlyResult.length;i++){
   if(min>dataOnlyResult[i])
     min=dataOnlyResult[i];
@@ -536,13 +537,13 @@ for(var i=0;i<dataOnlyResult.length;i++){
 console.log('min: '+min+' max: '+max);
 
 while(true){
-  console.log('lenght of the data: '+dataOnlyResult.length)
-  console.log('dimenstions '+resolution*resolution*sigmaIndexMap[sigmaa]+" "+(resolution*resolution*sigmaIndexMap[sigmaa]+resolution*resolution))
+  ////console.log('lenght of the data: '+dataOnlyResult.length)
+  ////console.log('dimenstions '+resolution*resolution*sigmaIndexMap[sigmaa]+" "+(resolution*resolution*sigmaIndexMap[sigmaa]+resolution*resolution))
   var sliceIndeces = [resolution*resolution*sigmaIndexMap[sigmaa],(resolution*resolution*sigmaIndexMap[sigmaa]+resolution*resolution)];
-  console.log('sliceindecies: '+sliceIndeces)
-  console.log('values: '+dataOnlyResult.slice(sliceIndeces[0],sliceIndeces[0]+5))
+  ////console.log('sliceindecies: '+sliceIndeces)
+  ////console.log('values: '+dataOnlyResult.slice(sliceIndeces[0],sliceIndeces[0]+5))
   var converted2DData = convert1DArrayTo2D(dataOnlyResult.slice(sliceIndeces[0],sliceIndeces[1]),resolution,resolution);
-  console.log('inside draw plot')
+  ////console.log('inside draw plot')
   // console.log('normalize: '+x);
   // console.log('normalize: '+y);
   //console.log('2d array'+convert1DArrayTo2D(dataOnlyResult,resolution,resolution))
@@ -570,7 +571,8 @@ while(true){
       x: 0.8,
       // xanchor: 'right',
       y: 1.05,
-      bgcolor: 'E2E2E2'
+      // bgcolor: 'E2E2E2'
+      bgcolor: 'transparent'
     },
     font:{
       color:"black",
@@ -762,6 +764,22 @@ asyncFunc().then(()=>{
 // sleep(3000).then(()=>{
   console.log('after timer');
 console.log('after');
+
+// setting values for select gene section box
+var geneNames = getGenes();
+var selectGeneDiv = document.getElementById('selectGene') as HTMLSelectElement;
+var options = []
+for(var i=0;i<geneNames.length;i++){
+  // console.log('option no: '+i+" name: "+geneNames[i]);
+  var option = document.createElement('option');
+  option.value = geneNames[i];
+  option.text = geneNames[i];
+  options.push({value: geneNames[i], label:geneNames[i]})
+  // selectGeneDiv.appendChild(option);
+}
+react_select_options_select_genes(options);
+
+
 var expression = document.getElementById('expression') as HTMLInputElement;
 var layout = document.getElementById('layout') as HTMLInputElement;
 var expData, expressionData, layoutDataX, layoutDataY, geneName, layoutDataName,layoutData,flag=0,params={},summedExp=new Map<String,number>();
@@ -883,7 +901,8 @@ var plotLayout = {
       x: 0.8,
       // xanchor: 'right',
       y: 1.05,
-      bgcolor: 'E2E2E2'
+      // bgcolor: 'E2E2E2'
+      bgcolor: 'transparent'
     },
     font:{
       color:"black",
@@ -1021,32 +1040,42 @@ var navSigma = document.getElementById('nav-Sigma-tab') as HTMLButtonElement;
 var navAvg = document.getElementById('nav-Avg-tab') as HTMLButtonElement;
 var navTab2 = document.getElementById('nav-tab2-tab') as HTMLButtonElement;
 var navNetwork = document.getElementById('nav-network-tab') as HTMLButtonElement;
+var navPathway = document.getElementById('nav-pathway-tab') as HTMLButtonElement;
+var navCompBeforeAfter = document.getElementById('nav-comp-before-after-tab') as HTMLButtonElement;
+var navAPI = document.getElementById('nav-api-tab') as HTMLButtonElement;
 var navContentGTDiv = document.getElementById('nav-GT') as HTMLButtonElement;
 var navContentSigmaDiv = document.getElementById('nav-Sigma') as HTMLButtonElement;
 var navContentAvgDiv = document.getElementById('nav-Avg') as HTMLButtonElement;
 var navContentTab2Div = document.getElementById('nav-tab2') as HTMLButtonElement;
 var navContentNetworkDiv = document.getElementById('nav-network') as HTMLButtonElement;
-var navPathway = document.getElementById('nav-pathway-tab') as HTMLButtonElement;
 var navContentPathWayDiv = document.getElementById('nav-pathway') as HTMLButtonElement;
+var navContentCompBeforeAfterDiv = document.getElementById('nav-comp-before-after') as HTMLButtonElement;
+var navContentAPIDiv = document.getElementById("nav-api") as HTMLButtonElement;
 navGT.addEventListener('click',()=>{
   navGT.className='nav-item active'
   navSigma.className='nav-item'
   navAvg.className='nav-item'
   navTab2.className='nav-item'
   navNetwork.className='nav-item'
+  navPathway.className='nav-item'
+  navCompBeforeAfter.className='nav-item'
   navGT.ariaSelected='true'
   navSigma.ariaSelected='false'
   navAvg.ariaSelected='false'
   navTab2.ariaSelected='false'
   navNetwork.ariaSelected='false'
+  navPathway.ariaSelected='false'
+  navCompBeforeAfter.ariaSelected='false'
   navContentGTDiv.className='tab-pane fade show active'
   navContentSigmaDiv.className='tab-pane fade'
   navContentAvgDiv.className='tab-pane fade'
   navContentTab2Div.className='tab-pane fade'
   navContentNetworkDiv.className='tab-pane fade'
-  navPathway.className='nav-item'
-  navPathway.ariaSelected='false'
   navContentPathWayDiv.className='tab-pane fade'
+  navContentCompBeforeAfterDiv.className='tab-pane fade'
+  navAPI.className='nav-item'
+  navAPI.ariaSelected='false'
+  navContentAPIDiv.className='tab-pane fade'
 })
 navSigma.addEventListener('click',()=>{
   navSigma.className='nav-item active'
@@ -1067,6 +1096,12 @@ navSigma.addEventListener('click',()=>{
   navPathway.className='nav-item'
   navPathway.ariaSelected='false'
   navContentPathWayDiv.className='tab-pane fade'
+  navCompBeforeAfter.className='nav-item'
+  navCompBeforeAfter.ariaSelected='false'
+  navContentCompBeforeAfterDiv.className='tab-pane fade'
+  navAPI.className='nav-item'
+  navAPI.ariaSelected='false'
+  navContentAPIDiv.className='tab-pane fade'
 })
 navAvg.addEventListener('click',()=>{
   navAvg.className='nav-item active'
@@ -1087,6 +1122,12 @@ navAvg.addEventListener('click',()=>{
   navPathway.className='nav-item'
   navPathway.ariaSelected='false'
   navContentPathWayDiv.className='tab-pane fade'
+  navCompBeforeAfter.className='nav-item'
+  navCompBeforeAfter.ariaSelected='false'
+  navContentCompBeforeAfterDiv.className='tab-pane fade'
+  navAPI.className='nav-item'
+  navAPI.ariaSelected='false'
+  navContentAPIDiv.className='tab-pane fade'
 })
 navTab2.addEventListener('click',()=>{
   navTab2.className='nav-item active'
@@ -1107,6 +1148,12 @@ navTab2.addEventListener('click',()=>{
   navPathway.className='nav-item'
   navPathway.ariaSelected='false'
   navContentPathWayDiv.className='tab-pane fade'
+  navCompBeforeAfter.className='nav-item'
+  navCompBeforeAfter.ariaSelected='false'
+  navContentCompBeforeAfterDiv.className='tab-pane fade'
+  navAPI.className='nav-item'
+  navAPI.ariaSelected='false'
+  navContentAPIDiv.className='tab-pane fade'
 })
 
 navPathway.addEventListener('click',()=>{
@@ -1128,6 +1175,12 @@ navPathway.addEventListener('click',()=>{
   navPathway.className='nav-item active'
   navPathway.ariaSelected='true'
   navContentPathWayDiv.className='tab-pane fade show active'
+  navCompBeforeAfter.className='nav-item'
+  navCompBeforeAfter.ariaSelected='false'
+  navContentCompBeforeAfterDiv.className='tab-pane fade'
+  navAPI.className='nav-item'
+  navAPI.ariaSelected='false'
+  navContentAPIDiv.className='tab-pane fade'
 })
 
 navNetwork.addEventListener('click',()=>{
@@ -1149,6 +1202,66 @@ navNetwork.addEventListener('click',()=>{
   navPathway.className='nav-item'
   navPathway.ariaSelected='false'
   navContentPathWayDiv.className='tab-pane fade'
+  navCompBeforeAfter.className='nav-item'
+  navCompBeforeAfter.ariaSelected='false'
+  navContentCompBeforeAfterDiv.className='tab-pane fade'
+  navAPI.className='nav-item'
+  navAPI.ariaSelected='false'
+  navContentAPIDiv.className='tab-pane fade'
+})
+
+navCompBeforeAfter.addEventListener('click',()=>{
+  navGT.className='nav-item'
+  navSigma.className='nav-item'
+  navAvg.className='nav-item'
+  navTab2.className='nav-item'
+  navNetwork.className='nav-item'
+  navGT.ariaSelected='false'
+  navSigma.ariaSelected='false'
+  navAvg.ariaSelected='false'
+  navTab2.ariaSelected='false'
+  navNetwork.ariaSelected='false'
+  navContentGTDiv.className='tab-pane fade'
+  navContentSigmaDiv.className='tab-pane fade'
+  navContentAvgDiv.className='tab-pane fade'
+  navContentTab2Div.className='tab-pane fade'
+  navContentNetworkDiv.className='tab-pane fade'
+  navPathway.className='nav-item'
+  navPathway.ariaSelected='false'
+  navContentPathWayDiv.className='tab-pane fade'
+  navCompBeforeAfter.className='nav-item active'
+  navCompBeforeAfter.ariaSelected='true'
+  navContentCompBeforeAfterDiv.className='tab-pane fade show active'
+  navAPI.className='nav-item'
+  navAPI.ariaSelected='false'
+  navContentAPIDiv.className='tab-pane fade'
+})
+
+navAPI.addEventListener('click',()=>{
+  navGT.className='nav-item'
+  navSigma.className='nav-item'
+  navAvg.className='nav-item'
+  navTab2.className='nav-item'
+  navNetwork.className='nav-item'
+  navGT.ariaSelected='false'
+  navSigma.ariaSelected='false'
+  navAvg.ariaSelected='false'
+  navTab2.ariaSelected='false'
+  navNetwork.ariaSelected='false'
+  navContentGTDiv.className='tab-pane fade'
+  navContentSigmaDiv.className='tab-pane fade'
+  navContentAvgDiv.className='tab-pane fade'
+  navContentTab2Div.className='tab-pane fade'
+  navContentNetworkDiv.className='tab-pane fade'
+  navPathway.className='nav-item'
+  navPathway.ariaSelected='false'
+  navContentPathWayDiv.className='tab-pane fade'
+  navCompBeforeAfter.className='nav-item'
+  navCompBeforeAfter.ariaSelected='false'
+  navContentCompBeforeAfterDiv.className='tab-pane fade'
+  navAPI.className='nav-item active'
+  navAPI.ariaSelected='true'
+  navContentAPIDiv.className='tab-pane fade show active'
 })
 
 var pathWayGrid = document.getElementById('gene-pathway-table');
@@ -1203,20 +1316,21 @@ var graphDiv = document.getElementById('canvas-div');
   
 //   // Plotly.restyle(graphDiv, 'marker.color', [colors], [0]);
 // });
-var geneNames = getGenes();
+// var geneNames = getGenes();
 // console.log('gene names: '+geneNames);
-var selectGeneDiv = document.getElementById('selectGene') as HTMLSelectElement;
-for(var i=0;i<geneNames.length;i++){
-  // console.log('option no: '+i+" name: "+geneNames[i]);
-  var option = document.createElement('option');
-  option.value = geneNames[i];
-  option.text = geneNames[i];
-  selectGeneDiv.appendChild(option);
-}
+// var selectGeneDiv = document.getElementById('selectGene') as HTMLSelectElement;
+// for(var i=0;i<geneNames.length;i++){
+//   // console.log('option no: '+i+" name: "+geneNames[i]);
+//   var option = document.createElement('option');
+//   option.value = geneNames[i];
+//   option.text = geneNames[i];
+//   selectGeneDiv.appendChild(option);
+// }
 var scatterX=[], scatterY=[], scatterNames=[];
 var geneRelatationTraceMap = new Map<string, any>(), traceIndex=2;
 var graphDiv = document.getElementById('canvas-div');
 //var selectGeneDiv = document.getElementById('selectGene') as HTMLSelectElement;
+//console.log('selection :',document.getElementsByClassName('select__multi-value__label css-wsp0cs-MultiValueGeneric').item)
 selectGeneDiv.addEventListener('change',()=>{
   var graphDiv = document.getElementById('canvas-div01');
   console.log('traces array: '+Array.from(Array(traceIndex).keys()).slice(2,traceIndex+1));
@@ -1274,8 +1388,6 @@ selectGeneDiv.addEventListener('change',()=>{
 a = getExp();
 b = getXandY();
 var store = require('store');
-store.set('key', 2);
-console.log(store.get('key'))
 // console.log('layout: '+b['cacng3']);
 async function generateTexture(selection){
   purgeDivs()
@@ -1287,9 +1399,11 @@ async function generateTexture(selection){
   // selection = getSelection();
   selection = Array.from(new Set(selection));
   console.log('selection'+selection.length)
-  if(f==true)
-    expData = preProcessExpData(expData)
+  // if(f==true)
+  //   expData = preProcessExpData(expData)
+    // alert(expData)
     // selection = ["IVYGAP_304950336"]
+    var startTime1 = new Date().getTime();
     await loadExpData(selectedDataset,selection)
     selectionLen = selection.length;
     store.set('selectionLen',selectionLen);
@@ -1304,6 +1418,7 @@ async function generateTexture(selection){
       // console.log(select);
       console.log(selection);
       var mergedMap = mergeLayoutExpData(b,a,'sampleKey');
+      var endTime1 = new Date().getTime();
         // lastIternation=1;
     // if(selection[selection.length-1]==select){
     //   console.log('selection: '+select);
@@ -1332,27 +1447,29 @@ async function generateTexture(selection){
         else
           summedExp[row[0]]+=row[3]
       }
-    console.log('x: '+layoutDataX.length+' y: '+layoutDataY.length+' exp: '+expressionData.length+' gene: '+geneName.length)
-    console.log('layoutx: '+layoutDataX)
-    console.log('layouty: '+layoutDataY)
-    console.log('expression data: '+expressionData)
-    console.log('gene name: '+geneName)
+    var endTime2 = new Date().getTime();
+    console.log('loading data and mergelayout function'+(endTime1-startTime1)+"\n after merge layout for loop: "+(endTime2-endTime1)+"Overall time: "+(endTime2-startTime1))
+    // console.log('x: '+layoutDataX.length+' y: '+layoutDataY.length+' exp: '+expressionData.length+' gene: '+geneName.length)
+    // console.log('layoutx: '+layoutDataX)
+    // console.log('layouty: '+layoutDataY)
+    // console.log('expression data: '+expressionData)
+    // console.log('gene name: '+geneName)
     // var outcome=await main(expressionData, layoutDataX, layoutDataY, geneName, sigma, showGene, scaleMin, scaleMax, resolution, selection.length, lastIternation, data, selectionLen, summedExp) as unknown as Float32Array;
     await main(expressionData, layoutDataX, layoutDataY, geneName, sigma, showGene, scaleMin, scaleMax, resolution, selection.length, lastIternation, selectionLen, summedExp, weightsArrayMap) as unknown as Float32Array;
     // await convertPromiseToFloat32Array(outcome).then((d)=>{
     //   data=d;
     //   console.log('final data: '+data[0]);
     // })
-    console.log('final data: '+data.slice(0,20));
+    ////console.log('final data: '+data.slice(0,20));
     downloadDiv1.style.display='block';
     downloadDiv2.style.display='block';
     f=false;
     lastIternation=0;
 // }
-console.log('im gere')
 const endTime = new Date().getTime();
 console.log('end time: '+endTime)
 console.log('Time taken: '+(endTime-startTime))
+//alert(endTime-startTime);
 console.log('heatmap data'+contourData)
 var allsigsigdata = normalizeAllSigmas(data,resolution);
 //drawPlot(data,layoutDataX,layoutDataY,expressionData,geneName,scaleMin,scaleMax,showGene)
@@ -1361,7 +1478,10 @@ var allsigsigdata = normalizeAllSigmas(data,resolution);
 generate.addEventListener('click',async ()=>{
   lastIternation=1
   selection = getSelection();
+  var startTime = new Date().getTime();
   await generateTexture(selection);
+  var endTime = new Date().getTime();
+  alert('Time taken to generate GeneTerrain: '+(endTime-startTime))
 });
 
 generateTab2.addEventListener('click',async()=>{
@@ -1374,10 +1494,10 @@ generateTab2.addEventListener('click',async()=>{
   console.log('2. '+selection)
   await generateTexture(selection);
 })
-
+Chat();
 })
 
-react_select_options();
+react_select_options_cancer_type();
 
 async function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));

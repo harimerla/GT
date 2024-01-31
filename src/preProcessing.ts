@@ -191,7 +191,7 @@ export function getData(map, index){
 }
 
 export async function getAGPLOT(selection: string[]){
-  console.log('count count')
+  console.log('preProcessing.ts || getAGPLOT || start')
   // var path = './csv/clinical_Data_GBM.csv';
   // var data, fileContent;
   // var reader = new FileReader();
@@ -312,7 +312,6 @@ export async function getAGPLOT(selection: string[]){
     //   hiddenByDefault:true
     // },
     // sideBar: 'filters',
-    suppressMaxHeight: true,
     sideBar: {
       toolPanels: [
         {
@@ -508,5 +507,6 @@ export async function getAGPLOT(selection: string[]){
   gridDiv.style.overflow = 'auto';
   // console.log(gridDiv.offsetHeight)
   // console.log(gridOptions.api.getRowNode('0').rowHeight)
+  console.log('preProcessing.ts || getAGPLOT || end')
 }
 

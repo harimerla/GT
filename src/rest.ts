@@ -17,7 +17,7 @@ var plotDataURLS = ['https://discovery.informatics.uab.edu/apex/gtkb/sample/all?
                     'https://discovery.informatics.uab.edu/apex/gtkb/clinical_data/GBM/CGGA/GLSS?offset=']
 
 var expURLS = {
-    "TCGA":"https://discovery.informatics.uab.edu/apex/gtkb/gene_exp/cleaned_gbm/",
+    "TCGA":"https://discovery.informatics.uab.edu/apex/gtkb/gene_exp/cleaned_GBM/TCGA/",
   "GSM":"https://discovery.informatics.uab.edu/apex/gtkb/gene_exp/cleaned_gbm/CGGA_Illumina_HiSeq_2000/",
   "CGGA":"https://discovery.informatics.uab.edu/apex/gtkb/gene_exp/cleaned_gbm/CGGA_Illumina_HiSeq_2000_or_2500/",
   "IVYGAP": "https://discovery.informatics.uab.edu/apex/gtkb/gene_exp/cleaned_gbm/IvyGap/",
@@ -57,15 +57,22 @@ export async function loadExpData(selectedDataset: string, sampleIDS: string[]){
     const urls = [];
     // const urll = 'https://discovery.informatics.uab.edu/apex/gtkb/gene_exp/cleaned_gbm/';
     var urll;
-    for(var sample of sampleIDS){
+    // for(var sample of sampleIDS){
+    //     if(sample.search('_')!=-1)
+    //         urll = expURLS[sample.split("_")[0]]
+    //     else
+    //         urll = expURLS[sample.split("-")[0]]
+    //     urls.push(urll+sample)
+    //     // urls.push(urll+sample+'?offset=10000')
+    //     //urls.push(urll+sample+'?offset=20000')
+    // }
+    sampleIDS.map((sample)=>{
         if(sample.search('_')!=-1)
             urll = expURLS[sample.split("_")[0]]
         else
             urll = expURLS[sample.split("-")[0]]
         urls.push(urll+sample)
-        // urls.push(urll+sample+'?offset=10000')
-        //urls.push(urll+sample+'?offset=20000')
-    }
+    })
     let requests = urls.map(url =>    fetch(url, {
         method: 'GET',
     }).then(response => response.json()).then(response => {expOutput=expOutput.concat(response['items']);console.log(expOutput.length)})
@@ -82,6 +89,88 @@ export async function loadExpData(selectedDataset: string, sampleIDS: string[]){
     console.log('load exp time taken: '+(endTime-startTime));
     console.log('rest.ts || loadExpData || End');
 }
+
+// export async function loadExpData(selectedDataset: string, sampleIDS: string[]){
+//     expOutput=[]
+//     console.log('rest.ts || loadExpData || Start');
+//     const startTime = new Date().getTime();
+//     const urls = [];
+//     // const urll = 'https://discovery.informatics.uab.edu/apex/gtkb/gene_exp/cleaned_gbm/';
+//     var datasetSampleidMap = new Map();
+//     for(var sample of sampleIDS){
+//         if(sample.search('_')!=-1){
+//             var datasetName = sample.split("_")[0]
+//             if(datasetSampleidMap[datasetName]!=undefined)
+//                 datasetSampleidMap[datasetName] += sample+","
+//             else   
+//                 datasetSampleidMap[datasetName] = ""
+//         }
+//         else{
+//             var datasetName = sample.split("-")[0]
+//             if(datasetSampleidMap[datasetName]!=undefined)
+//                 datasetSampleidMap[datasetName] += sample+","
+//             else   
+//                 datasetSampleidMap[datasetName] = ""
+//         }
+//     }
+//     for (var key of Object.keys(datasetSampleidMap)) {
+//         console.log(expURLS[key]+datasetSampleidMap[key])
+//         urls.push(expURLS[key]+datasetSampleidMap[key])
+//     }
+//     for(var url of urls){
+//         var i=0,limit=10000;
+//         while(true){
+//             var updatedURL = url+"?offset="+(i++*limit).toString();
+//             console.log(updatedURL)
+//             var jsonData;
+//             const plotData = async ()=>{
+//                 const response = await fetch(updatedURL,{method:'GET'});
+//                 jsonData = await response.json();
+//                 // console.log('exp data: '+jsonData)
+//             }
+//             await plotData().then(()=>{
+//                 // console.log(jsonData['items'])
+//                 console.log('exp json data loaded')
+//                 setAllExpData(jsonData['items'])
+//             })
+//             if(jsonData==undefined || jsonData['count']==0){
+//                 // console.log('reason :'+jsonData);
+//                 break;
+//             }
+//         }
+//     }
+//     console.log(expOutput)
+//     // for(var sample of sampleIDS){
+//     //     var datasettName;
+//     //     if(sample.search('_')!=-1){
+//     //         urll = expURLS[sample.split("_")[0]]
+//     //         datasettName=sample.split("_")[0]
+//     //     }
+//     //     else{
+//     //         urll = expURLS[sample.split("-")[0]]
+//     //         datasettName=sample.split("-")[0]
+//     //     }
+//     //     urls.push(urll+datasetSampleidMap[datasettName])
+//     //     // urls.push(urll+sample+'?offset=10000')
+//     //     //urls.push(urll+sample+'?offset=20000')
+//     // }
+//     // let requests = urls.map(url =>    fetch(url, {
+//     //     method: 'GET',
+//     // }).then(response => response.json()).then(response => {expOutput=expOutput.concat(response['items']);console.log(expOutput.length)})
+//     // );
+//     // await Promise.all(requests)
+//     // .then(responses => {
+//     //     // responses is an array of responses        // responses[0] is the response for the first request        // responses[1] is the response for the second request, etc.        
+//     //     // console.log(responses);
+//     // })
+//     // .catch(error => {
+//     //     console.error(error);
+//     // });
+//     // const endTime = new Date().getTime();
+//     // console.log('load exp time taken: '+(endTime-startTime));
+//     console.log('rest.ts || loadExpData || End');
+// }
+
 export async function loadExpData1(sampleIDS: string[]){
     const startTime = new Date().getTime();
     expOutput=[];
@@ -291,6 +380,7 @@ export function getExp(){
     }
     store.set('expGeneMap', expGeneMap);
     // console.log(expMap)
+    console.log('End getExp');
     return expMap;
 }
 export function getExpGeneMap(){

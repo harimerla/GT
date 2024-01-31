@@ -1,13 +1,14 @@
 import { Hmac } from 'crypto';
 import * as Plotly from 'plotly.js-dist';
 import { DomLayoutType, Grid, GridOptions } from 'ag-grid-community';
+import { do_plotly_selected } from '../dist/js/plotly_events'
 
 var specificLayout,allSigmaLayout, tab1Layout, tab2Layout,tab1HeatMapData,tab2HeatMapdataa01,tab2HeatMapdataa02;
 var heatMapdata,contourData;
 export async function drawSpecificPlot(hMdata, cData, layout){
     heatMapdata=hMdata;
     contourData=cData;
-    specificLayout = layout;
+    specificLayout = JSON.parse(JSON.stringify(layout));
     // specificLayout['title']={
     //     text:'<br>Plot Title',
     //     font: {
@@ -28,7 +29,7 @@ export async function drawSpecificPlot(hMdata, cData, layout){
 
 export async function drawAllSigmaPlot(hMdata, layout){
     heatMapdata=hMdata;
-    allSigmaLayout = layout;
+    allSigmaLayout = JSON.parse(JSON.stringify(layout));
     // allSigmaLayout['title']={
     //     text:'<br>',
     //     font: {
@@ -46,10 +47,10 @@ export async function drawAllSigmaPlot(hMdata, layout){
 export async function drawTab1Plot(hMdata, layout){
     // tab1HeatMapData = JSON.parse(JSON.stringify(hMdata));
     tab1HeatMapData=hMdata;
-    console.log(tab1HeatMapData);
-    console.log(typeof(tab1HeatMapData))
+    //console.log(tab1HeatMapData);
+    //console.log(typeof(tab1HeatMapData))
     tab1HeatMapData[1]['visible']='true';
-    tab1Layout=layout
+    tab1Layout=JSON.parse(JSON.stringify(layout));
     tab1Layout['dragmode']='lasso'
     Plotly.newPlot('canvas-div01', tab1HeatMapData, tab1Layout).then((gd)=>{Plotly.toImage(gd,{width:768,height:768}).then((url)=>{
         var img = document.getElementById('a2') as HTMLAnchorElement;
@@ -78,8 +79,11 @@ export async function drawTab2Plot01(tab2HeatMapdata01,layout){
   // tab2Layout['height']='50%'
   Plotly.newPlot('canvas-tab2-01', tab2HeatMapdata01, tab2Layout).then((gd)=>{Plotly.toImage(gd,{width:768,height:768}).then((url)=>{
     var img = document.getElementById('a1') as HTMLAnchorElement;
+    var compareImage1 = document.getElementById("compareImage1") as HTMLImageElement; 
     img.href=url;
+    compareImage1.src=url;
   })});
+  
 }
 export async function drawTab2Plot02(tab2HeatMapdata02,layout){
   console.log('inside drawTab2Plot02')
@@ -99,8 +103,15 @@ export async function drawTab2Plot02(tab2HeatMapdata02,layout){
   // tab2Layout['width']='100%'
   Plotly.newPlot('canvas-tab2-02', tab2HeatMapdata02, tab2Layout).then((gd)=>{Plotly.toImage(gd,{width:768,height:768}).then((url)=>{
     var img = document.getElementById('a1') as HTMLAnchorElement;
+    var compareImage2 = document.getElementById("compareImage2") as HTMLImageElement;
+    var imageCompContainer = document.getElementById("img-comp-container-id") as HTMLDivElement;
     img.href=url;
-  })});
+    compareImage2.src=url;
+    imageCompContainer.style.display="block"
+  })})
+  // .then(()=>{
+  //   do_plotly_selected()
+  // });
 }
 export async function updateExpDataInPlot(tab2HeatMapdata01,tab2HeatMapdata02,tab2FinalData01,tab2FinalData02,tab2WeightsArrayMap01,tab2WeightsArrayMap02,tab2Exp01,tab2Exp02,selectionLen1, selectionLen2){
   // console.log('updateExpDataInPlot'+tab2FinalData01)

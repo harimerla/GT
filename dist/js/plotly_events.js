@@ -1,8 +1,9 @@
 var resultSelection=[]
 var pathwayTableSelection = []
-var graphDiv = document.getElementById('canvas-div01');
+var graphDiv = document.getElementById('canvas-div');
 var plt_bgcolor = '#ECECEC', pltWidth=768,colorscale='Bluered',yaxisFontSize=12,base=1;
 var gProfilerResponse,drawNetworkVisited=false,edgesMap={},maxGeneCountInPathway=0;
+var isplotlySelected=false;
 function calculateStandardDeviation(data) {
     const n = data.length;
     const mean = data.reduce((sum, value) => sum + value, 0) / n;
@@ -89,7 +90,8 @@ graphDiv.addEventListener('mouseenter', ()=>{
             x: 0.8,
             // xanchor: 'right',
             y: 1.05,
-            bgcolor: 'E2E2E2'
+            // bgcolor: 'E2E2E2'
+            bgcolor: 'transparent'
         },
         font:{
             color:"black",
@@ -120,18 +122,40 @@ graphDiv.addEventListener('mouseenter', ()=>{
     Plotly.newPlot('bar-chart-exp',barTraceExp, barsLayout1);
     Plotly.newPlot('bar-chart-output',barTraceOuput, barsLayout2);
     })
-})
+    
+}, {once:true})
 
 var tab2div01 = document.getElementById('canvas-tab2-01');
 var tab2div02 = document.getElementById('canvas-tab2-02');
+var showGene2 = document.getElementById("show gene2")
 var barTraceOuput,plotLayout,barTraceExp;
+
+// tab2div01.on = function(eventType, callback) {
+//     if (eventType === 'plotly_selected') {
+//       // Your code to handle the click event goes here
+//       alert('plotly selected')
+//       callback();
+//     }
+//   };
+
+//console.log(openaiAPI('How are you'))
+var event = new Event('change');
+// document.getElementById("nav-api-tab").addEventListener('mouseenter',()=>{
+// })
 tab2div01.addEventListener('mouseenter',()=>{
+    isplotlySelected=false;
+    // alert('show gene changed')
+    // tab2div01.addEventListener('mouseleave',()=>{
+    //     alert('out')
+    //     tab2div01.removeEventListener('mouseenter')
+    // })
 // tab2div01.addEventListener("change", function() {
-    var flag='inside'
-    tab2div01.addEventListener('mouseout',()=>{
-        flag='left'
-        return
-    })
+    // var flag='inside'
+    // tab2div01.addEventListener('mouseout',()=>{
+    //     flag='left'
+    //     return
+    // })
+    console.log(tab2div01.attributes)
     tab2div01.on('plotly_legendclick',async function(eventData){
         console.log('plotly click')
         console.log(eventData)
@@ -145,6 +169,7 @@ tab2div01.addEventListener('mouseenter',()=>{
         await Plotly.restyle(tab2div01,{opacity:op},[1]);
     })
     tab2div01.on('plotly_selected',async function(eventData){
+        isplotlySelected=true;
         console.log('insde tab2div01 plotly selected')
         console.log(eventData)
         
@@ -181,6 +206,8 @@ tab2div01.addEventListener('mouseenter',()=>{
         // ptSTD1=normalize(ptSTD1)
         // ptSTD2=normalize(ptSTD2)
         console.log(ptGene)
+        document.getElementById("hidden-input").innerText=ptGene.toString()
+        document.getElementById("hidden-input").dispatchEvent(event);
         // console.log(ptExp01)
         // console.log(ptExp02)
         barTraceOuput = [{
@@ -257,14 +284,15 @@ tab2div01.addEventListener('mouseenter',()=>{
             }];
         plotLayout = {
                 barmode: 'group',
-                width:768,
-                height:768,
+                width:0,
+                height:0,
                 showlegend: true,
                 legend: {
                     x: 0.8,
                     // xanchor: 'right',
                     y: 1.05,
-                    bgcolor: 'E2E2E2'
+                    // bgcolor: 'E2E2E2'
+                    bgcolor: 'transparent'
                 },
                 font:{
                     color:"black",
@@ -273,18 +301,18 @@ tab2div01.addEventListener('mouseenter',()=>{
             }
         var layout1 = JSON.parse(JSON.stringify(plotLayout));
         layout1['title']={
-            text:'<br>Gene vs GT<br>'+ptExp01.length+' Genes',
+            text:'<br>Gene Intensity<br>'+ptExp01.length+' Genes',
             font: {
-            size: 24,
+            size: 20,
             color: '#7f7f7f'
             },
             xref: 'paper',
         }
         var layout2 = JSON.parse(JSON.stringify(plotLayout));
         layout2['title']={
-            text:'<br>Gene vs Exp<br>'+ptExp01.length+' Genes',
+            text:'<br>Gene Expression<br>'+ptExp01.length+' Genes',
             font: {
-            size: 24,
+            size: 20,
             color: '#7f7f7f'
             },
             xref: 'paper',
@@ -434,7 +462,7 @@ tab2div01.addEventListener('mouseenter',()=>{
             pathway(ptGene, pt01Out, pt02Out, pt01OutText, pt02OutText)
         })
         // await drawNetwork(ptGene, pt01Out, pt02Out, pt01OutText, pt02OutText);
-    })
+    },{once:true})
 })
 
 async function saveDataToProperties(ptGene, pt01Out, pt02Out, pt01OutText, pt02OutText){
@@ -830,7 +858,8 @@ async function pathway(ptGene, pt01Out, pt02Out, pt01OutText, pt02OutText){
           x: 0.8,
           // xanchor: 'right',
           y: 1.05,
-          bgcolor: 'E2E2E2'
+        //   bgcolor: 'E2E2E2'
+        bgcolor: 'transparent'
         },
         font:{
           color:"black",
@@ -1971,3 +2000,4 @@ const calculatePValue = (array1, array2) => {
 //   };
 //   var response = await fetch("http://discovery.informatics.uab.edu/PAGER/index.php/geneset/pagerapi", requestOptions).catch(error=>console.log('error : '+error));
 //   console.log(response)
+

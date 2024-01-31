@@ -1,4 +1,4 @@
-FROM node:slim
+FROM node:latest
 WORKDIR /GeneTerrain
 COPY . /GeneTerrain/
 RUN npm install
