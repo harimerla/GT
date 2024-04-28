@@ -1,9 +1,11 @@
 var resultSelection=[]
-var pathwayTableSelection = []
+var pathwayTableSelection = {}, pathwayGeneMap={}
 var graphDiv = document.getElementById('canvas-div');
-var plt_bgcolor = '#ECECEC', pltWidth=768,colorscale='Bluered',yaxisFontSize=12,base=1;
+var plt_bgcolor = 'white', pltWidth=768,colorscale='Bluered',yaxisFontSize=12,base=1;
 var gProfilerResponse,drawNetworkVisited=false,edgesMap={},maxGeneCountInPathway=0;
 var isplotlySelected=false;
+var selectedPointsIndices=[], pagGenesMap={};
+var PAGIDGENE_URL = 'http://127.0.0.1:5000/pagRankedGene/'
 function calculateStandardDeviation(data) {
     const n = data.length;
     const mean = data.reduce((sum, value) => sum + value, 0) / n;
@@ -16,7 +18,6 @@ function calculateStandardDeviation(data) {
     return standardDeviation*0.05;
   }
 
-  
   function normalize(arr){
     var min = 1000, max=-1000;
     var temp = new Float32Array(arr.length)
@@ -32,98 +33,117 @@ function calculateStandardDeviation(data) {
     }
     return temp;
   }
-  
-graphDiv.addEventListener('mouseenter', ()=>{
-// if (graphDiv.classList.contains('js-plotly-plot') || graphDiv.id.startsWith('myPlotlyGraph_')) {
-    graphDiv.on('plotly_selected',function(eventData){
-    console.log(eventData);
-    // console.log(eventData.currentTarget.data[1].selectedpoints)
-    // console.log(eventData.currentTarget.data[1].selectedpoints[0].x)
-    var pt=[]
-    var ptx=[], pty=[], pttext=[], ptout=[], ptexp=[], ptbase=[], ptcolorexp=[], ptcolorGT=[], ptoutText=[], ptexpText=[]
-    eventData.points.forEach(function(pt) {
-        ptx.push(pt.x);
-        pty.push(pt.y);
-        var currOut = pt.data.args.z[~~(pt.y)][~~(pt.x)]
-        var currExp = pt.data.args.exp[pt.text]
-        ptout.push(currOut)
-        ptoutText.push(Number(currOut).toFixed(2))
-        pttext.push(pt.text);
-        ptexp.push(currExp)
-        ptexpText.push(Number(currExp).toFixed(2))
-        // ptbase.push(currOut<0?currOut:0)
-        ptcolorexp.push(currExp<0?'blue':'red')
-        ptcolorGT.push(currOut<0?'blue':'red')
-        console.log(pt.x);
-        console.log(pt.y);
-        console.log(pt.text);
-    });
-    var barTraceOuput = [{
-        x: pttext,
-        y: ptout,
-        type: 'bar',
-        base: 0,
-        text: ptoutText.map(String),
-        textposition: 'auto',
-        hoverinfo: 'none',
-        width: 0.5,
-        // text: pttext,
-        marker: {color: ptcolorGT}
-    }];
-    var barTraceExp = [{
-        x: pttext,
-        y: ptexp,
-        type: 'bar',
-        base: 0,
-        text: ptexpText.map(String),
-        textposition: 'auto',
-        hoverinfo: 'none',
-        width: 0.5,
-        // text: pttext,
-        marker: {color: ptcolorexp}
-    }];
-    var plotLayout = {
-        width:768,
-        height:768,
-        showlegend: true,
-        legend: {
-            x: 0.8,
-            // xanchor: 'right',
-            y: 1.05,
-            // bgcolor: 'E2E2E2'
-            bgcolor: 'transparent'
-        },
-        font:{
-            color:"black",
-            size:12,
-        }
-        }
-    var barsLayout1 = JSON.parse(JSON.stringify(plotLayout));
-    barsLayout1['title']={
-        text:'<br>GeneTerrain Expression',
-        font: {
-        size: 24,
-        color: '#7f7f7f'
-        },
-        xref: 'paper',
-    }
-    var barsLayout2 = JSON.parse(JSON.stringify(plotLayout));
-    barsLayout2['title']={
-        text:'<br><b>GeneTerrain Intensity<b>',
-            font: {
-            size: 24,
-            color: '#7f7f7f'
-            },
-            xref: 'paper',
-    }
-    barsLayout1['showlegend']=false
-    barsLayout2['showlegend']=false
+
+function displayClinicalDataTable(){
+    document.getElementById('myGrid').style.display='block';
+}
+
+function hideClinicalDataTable(){
+    document.getElementById('myGrid').style.display='none';
+}
+
+function displayPathwayDataTable(){
+    document.getElementById('myGrid').style.display='none';
+    document.getElementById('gene-pathway-table').style.display='block'
+    // document.getElementById('pathway-table-nav-pathway').innerHTML=document.getElementById('gene-pathway-table').innerHTML
+    // document.getElementById('pathway-table-nav-pathway-details').innerHTML=document.getElementById('gene-pathway-table').innerHTML
+}
+
+function hidePathwayDataTable(){
+    document.getElementById('myGrid').style.display='none';
+    document.getElementById('gene-pathway-table').style.display='none'
+}
+// graphDiv.addEventListener('mouseenter', ()=>{
+// // if (graphDiv.classList.contains('js-plotly-plot') || graphDiv.id.startsWith('myPlotlyGraph_')) {
+//     graphDiv.on('plotly_selected',function(eventData){
+//     console.log(eventData);
+//     // console.log(eventData.currentTarget.data[1].selectedpoints)
+//     // console.log(eventData.currentTarget.data[1].selectedpoints[0].x)
+//     var pt=[]
+//     var ptx=[], pty=[], pttext=[], ptout=[], ptexp=[], ptbase=[], ptcolorexp=[], ptcolorGT=[], ptoutText=[], ptexpText=[]
+//     eventData.points.forEach(function(pt) {
+//         ptx.push(pt.x);
+//         pty.push(pt.y);
+//         var currOut = pt.data.args.z[~~(pt.y)][~~(pt.x)]
+//         var currExp = pt.data.args.exp[pt.text]
+//         ptout.push(currOut)
+//         ptoutText.push(Number(currOut).toFixed(2))
+//         pttext.push(pt.text);
+//         ptexp.push(currExp)
+//         ptexpText.push(Number(currExp).toFixed(2))
+//         // ptbase.push(currOut<0?currOut:0)
+//         ptcolorexp.push(currExp<0?'blue':'red')
+//         ptcolorGT.push(currOut<0?'blue':'red')
+//         console.log(pt.x);
+//         console.log(pt.y);
+//         console.log(pt.text);
+//     });
+//     var barTraceOuput = [{
+//         x: pttext,
+//         y: ptout,
+//         type: 'bar',
+//         base: 0,
+//         text: ptoutText.map(String),
+//         textposition: 'auto',
+//         hoverinfo: 'none',
+//         width: 0.5,
+//         // text: pttext,
+//         marker: {color: ptcolorGT}
+//     }];
+//     var barTraceExp = [{
+//         x: pttext,
+//         y: ptexp,
+//         type: 'bar',
+//         base: 0,
+//         text: ptexpText.map(String),
+//         textposition: 'auto',
+//         hoverinfo: 'none',
+//         width: 0.5,
+//         // text: pttext,
+//         marker: {color: ptcolorexp}
+//     }];
+//     var plotLayout = {
+//         width:768,
+//         height:768,
+//         showlegend: true,
+//         legend: {
+//             x: 0.8,
+//             // xanchor: 'right',
+//             y: 1.05,
+//             // bgcolor: 'E2E2E2'
+//             bgcolor: 'transparent'
+//         },
+//         font:{
+//             color:"black",
+//             size:12,
+//         }
+//         }
+//     var barsLayout1 = JSON.parse(JSON.stringify(plotLayout));
+//     barsLayout1['title']={
+//         text:'<br>GeneTerrain Expression',
+//         font: {
+//         size: 24,
+//         color: '#7f7f7f'
+//         },
+//         xref: 'paper',
+//     }
+//     var barsLayout2 = JSON.parse(JSON.stringify(plotLayout));
+//     barsLayout2['title']={
+//         text:'<br><b>GeneTerrain Intensity<b>',
+//             font: {
+//             size: 24,
+//             color: '#7f7f7f'
+//             },
+//             xref: 'paper',
+//     }
+//     barsLayout1['showlegend']=false
+//     barsLayout2['showlegend']=false
     
-    Plotly.newPlot('bar-chart-exp',barTraceExp, barsLayout1);
-    Plotly.newPlot('bar-chart-output',barTraceOuput, barsLayout2);
-    })
+//     Plotly.newPlot('bar-chart-exp',barTraceExp, barsLayout1);
+//     Plotly.newPlot('bar-chart-output',barTraceOuput, barsLayout2);
+//     })
     
-}, {once:true})
+// }, {once:true})
 
 var tab2div01 = document.getElementById('canvas-tab2-01');
 var tab2div02 = document.getElementById('canvas-tab2-02');
@@ -168,19 +188,21 @@ tab2div01.addEventListener('mouseenter',()=>{
         console.log(op)
         await Plotly.restyle(tab2div01,{opacity:op},[1]);
     })
-    tab2div01.on('plotly_selected',async function(eventData){
+    tab2div02.on('plotly_selected',async function(eventData){
         isplotlySelected=true;
         console.log('insde tab2div01 plotly selected')
         console.log(eventData)
+        // document.getElementById("store-event-data").innerText=JSON.stringify(eventData)
         
-        var selectedPointsIndices=[];
+        selectedPointsIndices=[];
         var ptGene=[], ptx=[], pty=[], pt01Out=[], pt02Out=[],pt01OutText=[],pt02OutText=[]
         var ptSTD1=[],ptSTD2=[],ptExp01=[], ptExp02=[],ptExp01Text=[],ptExp02Text=[],ptPvalue=[]
         var tab2Table = document.getElementById('tab2-table');
         var tab2BarPlot = document.getElementById('tab2-barplot');
         var tab2BarPlot02 = document.getElementById('tab2-barplot02')
-        eventData.points.forEach(function(pt) {
+        eventData.points.forEach(async function(pt) {
             ptGene.push(pt.text);
+            selectedPointsIndices.push(pt.pointIndex)
             ptx.push(pt.x);
             pty.push(pt.y);
             var currPt01out = pt.data.args.z1[~~(pt.y)][~~(pt.x)]
@@ -200,14 +222,19 @@ tab2div01.addEventListener('mouseenter',()=>{
             pt02Out.push(currPt02out);
             pt01OutText.push(Number(currPt01out).toFixed(2))
             pt02OutText.push(Number(currPt02out).toFixed(2))
-            selectedPointsIndices.push(pt.pointIndex)
         });
         
         // ptSTD1=normalize(ptSTD1)
         // ptSTD2=normalize(ptSTD2)
-        console.log(ptGene)
+        console.log(ptGene+" "+ptGene.length)
+        console.log(selectedPointsIndices+" "+selectedPointsIndices.length)
         document.getElementById("hidden-input").innerText=ptGene.toString()
+        document.getElementById("store-genes-input").innerText=ptGene.toString()
+        document.getElementById("store-genes-x").innerText=ptx.toString()
+        document.getElementById("store-genes-y").innerText=pty.toString()
+        document.getElementById("store-genes-index").innerText=selectedPointsIndices.toString()
         document.getElementById("hidden-input").dispatchEvent(event);
+        document.getElementById("store-genes-input").dispatchEvent(event);
         // console.log(ptExp01)
         // console.log(ptExp02)
         barTraceOuput = [{
@@ -451,8 +478,38 @@ tab2div01.addEventListener('mouseenter',()=>{
         }]
         await Plotly.newPlot(tab2BarPlot02, barTraceExp, layout2);
         await Plotly.newPlot(tab2BarPlot, barTraceOuput, layout1);
-        await Plotly.restyle(tab2div02, {'selectedpoints': [selectedPointsIndices], opacity:1},[1]);
-        await Plotly.restyle(tab2div01, {'selectedpoints': [selectedPointsIndices], opacity:1},[1]);
+        // await Plotly.restyle(tab2div02, {'selectedpoints': [selectedPointsIndices], opacity:1},[1]);
+        // await Plotly.restyle(tab2div01, {'selectedpoints': [selectedPointsIndices], opacity:1},[1]);
+        // await Plotly.restyle(
+        //     tab2div02,  // The target div or element where the plot is located
+        //     {           // The new style properties to apply
+        //         opacity: 0  // Setting opacity to 0 for all points
+        //     },
+        //     [1]  // The trace indices to apply the style changes to, replace n with the index of the last trace
+        // );
+        console.log(ptGene)
+        console.log(selectedPointsIndices)
+        await Plotly.restyle(tab2div02, {'selectedpoints': [selectedPointsIndices], opacity:1,unselected: {
+            marker: {
+              color: '#00ff00',
+              opacity: 0
+            }, textfont: {
+              color: 'transparent',
+              opacity: 0
+            }
+          },
+          
+        },[1]);
+        
+        await Plotly.restyle(tab2div01, {'selectedpoints': [selectedPointsIndices], opacity:1,unselected: {
+            marker: {
+              color: '#00ff00',
+              opacity: 0
+            }, textfont: {
+              color: 'transparent',
+              opacity: 0
+            }
+          }},[1]);
         // saveDataToProperties(ptGene, pt01Out, pt02Out, pt01OutText, pt02OutText);
         agGridd(ptGene, pt01Out, pt02Out, pt01OutText, pt02OutText,ptPvalue);
         //tempGrid();
@@ -542,10 +599,13 @@ async function agGridd(ptGene, pt01Out, pt02Out, pt01OutText, pt02OutText,ptPval
         console.log('inside grid div click event')
         const selectedRows = gridOptions.api.getSelectedRows();
         console.log(selectedRows)
+        // pathwayTableSelection={}
         pathwayTableSelection=[]
+        var index=0
         for(var row of selectedRows){
             // console.log(row)
             pathwayTableSelection.push(row['GeneName'])
+            // pathwayTableSelection[row['GeneName']]=[row['GeneName']]
         }
         console.log(pathwayTableSelection)
     })
@@ -605,7 +665,7 @@ const rowData = []
 var k=1;
 var lineColor = []
 var sources = []
-var colors, normalizedSelectedIntersectionSize,normalizedSelectedIntersectionSizeBKP,sIsize1,sIsize2,baseValue=1;
+var colors, normalizedSelectedIntersectionSize,normalizedSelectedIntersectionSizeBKP,sIsize1=100000,sIsize2=0,baseValue=1;
 var selectedRowMap = {}, selectedRowMapName={},selectedColor=[],selectedSource = [];
 var selectedPvalue = [],selectedPvalueBubble=[], selectedIntersectionSize=[],selectedNames=[],selectedPvalueBKP=[],selectedPvalueBubbleBKP=[],selectedNamesBKP=[],selectedIntersectionSizeBKP=[]
 var selectedGeneNameInteractionsMap = {},selectedPvalueRange=[1000000,-1000000]
@@ -675,91 +735,56 @@ async function pathway(ptGene, pt01Out, pt02Out, pt01OutText, pt02OutText){
     var body = {
         organism:"hsapiens",
         query:pathwayTableSelection
-        // query:["ENSG00000078900",
-        //     "ENSG00000117614",
-        //     "ENSG00000117748",
-        //     "ENSG00000092853",
-        //     "ENSG00000143155",
-        //     "ENSG00000162889",
-        //     "ENSG00000143493",
-        //     "ENSG00000143476",
-        //     "ENSG00000095002",
-        //     "ENSG00000115966",
-        //     "ENSG00000204120",
-        //     "ENSG00000154767",
-        //     "ENSG00000164053",
-        //     "ENSG00000114670",
-        //     "ENSG00000182923",
-        //     "ENSG00000175054",
-        //     "ENSG00000073282",
-        //     "ENSG00000134852",
-        //     "ENSG00000137601",
-        //     "ENSG00000113456",
-        //     "ENSG00000151876",
-        //     "ENSG00000152942",
-        //     "ENSG00000188996",
-        //     "ENSG00000124766",
-        //     "ENSG00000198563",
-        //     "ENSG00000112062",
-        //     "ENSG00000124762",
-        //     "ENSG00000096401",
-        //     "ENSG00000136273",
-        //     "ENSG00000135249",
-        //     "ENSG00000106144",
-        //     "ENSG00000158941",
-        //     "ENSG00000253729",
-        //     "ENSG00000104320",
-        //     "ENSG00000081377",
-        //     "ENSG00000095787",
-        //     "ENSG00000170312",
-        //     "ENSG00000177595",
-        //     "ENSG00000110107",
-        //     "ENSG00000172613",
-        //     "ENSG00000110092",
-        //     "ENSG00000149311",
-        //     "ENSG00000048028",
-        //     "ENSG00000172273",
-        //     "ENSG00000149554",
-        //     "ENSG00000171792",
-        //     "ENSG00000060982",
-        //     "ENSG00000135679",
-        //     "ENSG00000169372",
-        //     "ENSG00000008405",
-        //     "ENSG00000151164",
-        //     "ENSG00000179295",
-        //     "ENSG00000135090",
-        //     "ENSG00000136104",
-        //     "ENSG00000139842",
-        //     "ENSG00000053254",
-        //     "ENSG00000185088",
-        //     "ENSG00000075131",
-        //     "ENSG00000169018",
-        //     "ENSG00000140464",
-        //     "ENSG00000140525",
-        //     "ENSG00000197299",
-        //     "ENSG00000166851",
-        //     "ENSG00000149930",
-        //     "ENSG00000168411",
-        //     "ENSG00000103264",
-        //     "ENSG00000141510",
-        //     "ENSG00000160551",
-        //     "ENSG00000012048",
-        //     "ENSG00000108465",
-        //     "ENSG00000079134",
-        //     "ENSG00000101773",
-        //     "ENSG00000185988",
-        //     "ENSG00000105325",
-        //     "ENSG00000105393",
-        //     "ENSG00000160469",
-        //     "ENSG00000101412",
-        //     "ENSG00000183765",
-        //     "ENSG00000100296",
-        //     "ENSG00000184481",
-        //     "ENSG00000185515"]
     }
-    var response = await fetch(url, {body:JSON.stringify(body), method:'POST'})
-    var responseJson = await response.json()
-    gProfilerResponse = responseJson['result']
+    console.log(pathwayTableSelection)
+    // var response = await fetch(url, {body:JSON.stringify(body), method:'POST'})
+    // var responseJson = await response.json()
+    // gProfilerResponse = responseJson
+    // Pager API
+    var RUN_PAGER_URL = "http://127.0.0.1:5000/"
+    var formdata = {
+        "genes": pathwayTableSelection,
+        "source": ["WikiPathway_2021"],
+        "type": "All",
+        "sim": 0,
+        "olap": 1,
+        "organism": "Homo sapiens",
+        "cohesion": "0",
+        "pvalue": 0.05,
+        "FDR": 0.05,
+        "ge": 1,
+        "le": 2000
+      }
+      
+      var requestOptions = {
+        method: 'POST',
+        // headers: myHeaders,
+        body: formdata,
+        redirect: 'follow',
+      };
+      //   var response = fetch("http://discovery.informatics.uab.edu/PAGER/index.php/geneset/pagerapi", requestOptions).catch(error=>console.log('error : '+error));
+      var responseJson;
+      await fetch(RUN_PAGER_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(formdata)
+      })
+      .then(response => {
+        if (!response.ok) {
+          throw new Error('Network response was not ok');
+        }
+        return response.json(); // Parse response body as JSON
+      })
+      .then(dataArray => {
+        // Iterate over the array of JSON objects
+        console.log('Pager API result for MYC gene')
+        console.log(dataArray);
+        responseJson = dataArray
+      })
+      .catch(error => console.error('Error:', error));
+
     console.log(responseJson)
     var geneCountMap = new Map();
     var genePValueMap = new Map();
@@ -768,12 +793,36 @@ async function pathway(ptGene, pt01Out, pt02Out, pt01OutText, pt02OutText){
     var k=1;
     var lineColor = []
     var sources = []
-    console.log(Object.keys(responseJson['result'][0]))
-    for(var i=0;i<responseJson['result'].length;i++){
-        var obj = responseJson['result'][i];
-        var source = responseJson['result'][i]['source'];
-        var pvaluee = -1*Math.log10(responseJson['result'][i]['p_value'])
-        rowData.push({Id:k++,Source:obj['source'],Term_Id:obj['native'],PathWay:obj['name'],intersection_size:obj['intersection_size'],P_value:convertToPowerOf10(obj['p_value']),hiddenPvalue:pvaluee,name:obj['name'], intersections:[...new Set(obj['intersections'].flat())]})
+    var querySourceMap = new Map();
+    pagGenesMap = {}
+    console.log(Object.keys(responseJson[0]))
+    for(var i=0;i<responseJson.length;i++){
+        responseJson[i]['source'] = responseJson[i]['GS_ID']
+        responseJson[i]['query']=responseJson[i]['MVC']
+        responseJson[i]['p_value']=responseJson[i]['pvalue']
+        responseJson[i]['name']=responseJson[i]['DESCRIPTION']
+        responseJson[i]['intersections'] = ['a', 'b', 'c']
+        responseJson[i]['intersection_size'] = responseJson[i]['OLAP']
+
+        var obj = responseJson[i];
+        var source = responseJson[i]['source'];
+        var query = responseJson[i]['query']
+        var pvaluee = -1*Math.log10(responseJson[i]['p_value'])
+
+
+        var allPagGenesResponse = await getGenesFromPags(source)
+        var allPagGenes = allPagGenesResponse.map(entry => entry.GENE_SYM);
+        var commonGens = allPagGenes.filter(value => ptGene.includes(value));
+        console.log(commonGens)
+        pagGenesMap[source]=commonGens
+        responseJson[i]['intersections'] = commonGens
+
+        // rowData.push({Id:k++,Source:obj['source'],Term_Id:obj['native'],PathWay:obj['name'],intersection_size:obj['intersection_size'],P_value:convertToPowerOf10(obj['p_value']),hiddenPvalue:pvaluee,name:obj['name'], intersections:[...new Set(obj['intersections'].flat())]})
+        rowData.push({Id:k++,Source:obj['source'],Term_Id:obj['native'],PathWay:obj['name'],intersection_size:obj['intersection_size'],P_value:convertToPowerOf10(obj['p_value']),hiddenPvalue:pvaluee,name:obj['name'], intersections:''})
+        if(querySourceMap[source]==undefined)
+            querySourceMap[source]=[query]
+        else
+            querySourceMap[source].push(query)
         s.push(source)
         lineColor.push('rgba(255,255,255,0)')
         p.push(pvaluee)
@@ -787,6 +836,13 @@ async function pathway(ptGene, pt01Out, pt02Out, pt01OutText, pt02OutText){
             sources.push(source);
         }
     }
+    // for(var key in responseJson['meta']['query_metadata']['queries']){
+    //     if(pathwayGeneMap[querySourceMap[key]]!=undefined)
+    //         pathwayGeneMap[querySourceMap[key]] = pathwayGeneMap[querySourceMap[key]].concat(responseJson['meta']['query_metadata']['queries'][key])
+    //     else
+    //         pathwayGeneMap[querySourceMap[key]] = responseJson['meta']['query_metadata']['queries'][key]
+    // }
+    // console.log(pathwayGeneMap)
     apiOutputLen = s.length
     console.log(genePValueMap)
     // var traces = []
@@ -952,8 +1008,12 @@ async function pathway(ptGene, pt01Out, pt02Out, pt01OutText, pt02OutText){
         },
       };
     var table = document.querySelector('#pathwayResultInfo')
+    var pathwayDetailsTable=document.querySelector("#gene-pathway-details-table")
     table.innerHTML='';
+    pathwayDetailsTable.innerHTML='';
     new agGrid.Grid(table, gridOptions);
+    var gridOptionsforPathwayDetails = {...gridOptions};
+    new agGrid.Grid(pathwayDetailsTable, gridOptionsforPathwayDetails);
     table.addEventListener('click',()=>{
         console.log('inside grid div click event')
         const selectedRows = gridOptions.api.getSelectedRows();
@@ -962,6 +1022,8 @@ async function pathway(ptGene, pt01Out, pt02Out, pt01OutText, pt02OutText){
         selectedSource = [], selectedPvalue = [], selectedPvalueBubble=[], selectedIntersectionSize=[],selectedColor=[],selectedNames=[]
         selectedRowMap = {}, selectedRowMapName = {}, selectedGeneNameInteractionsMap={}
         sIsize1=10000000,sIsize2=-10000000,selectedPvalueRange=[1000000,-1000000];
+        sIsize1 = parseInt(sIsize1)
+        sIsize2 = parseInt(sIsize2)
         for(var row of selectedRows){
             if(selectedRowMapName[toTitleCase(row['name'])]!=undefined)
                 continue
@@ -977,16 +1039,16 @@ async function pathway(ptGene, pt01Out, pt02Out, pt01OutText, pt02OutText){
             selectedNames = [toTitleCase(row['name'])+' '].concat(selectedNames)
             selectedPvalue = [row['hiddenPvalue']].concat(selectedPvalue)
             selectedPvalueBubble = [row['hiddenPvalue']+base].concat(selectedPvalueBubble)
-            if(sIsize1>row['intersection_size'])
-                sIsize1 = row['intersection_size']
-            if(sIsize2<row['intersection_size'])
-                sIsize2 = row['intersection_size']
+            if(sIsize1>parseInt(row['intersection_size']))
+                sIsize1 = parseInt(row['intersection_size'])
+            if(sIsize2<parseInt(row['intersection_size']))
+                sIsize2 = parseInt(row['intersection_size'])
             if(selectedPvalueRange[0]>row['hiddenPvalue'])
                 selectedPvalueRange[0]=row['hiddenPvalue']
             if(selectedPvalueRange[1]<row['hiddenPvalue'])
                 selectedPvalueRange[1]=row['hiddenPvalue']
             selectedIntersectionSize= [row['intersection_size']].concat(selectedIntersectionSize)
-            selectedGeneNameInteractionsMap[row['name']]=[row['intersections'],row['hiddenPvalue'],row['intersection_size']]
+            selectedGeneNameInteractionsMap[row['name']]=[row['intersections'],row['hiddenPvalue'],row['intersection_size'], row['Source']]
         }
         // for(var key in selectedRowMap){
         //     selectedSource.push(key)
@@ -1012,6 +1074,8 @@ async function pathway(ptGene, pt01Out, pt02Out, pt01OutText, pt02OutText){
         selectedPvalueBKP = selectedPvalue
         selectedPvalueBubbleBKP = selectedPvalueBubble
         selectedIntersectionSizeBKP = selectedIntersectionSize
+        console.log('bubble: '+selectedPvalueBubble);
+        console.log(selectedPvalue)
         var tracee = [{
             // y:[0],
             // x:[0],
@@ -1080,14 +1144,18 @@ async function pathway(ptGene, pt01Out, pt02Out, pt01OutText, pt02OutText){
             }
         },{
             y:selectedNames,
-            x:selectedPvalue,
+            // x:selectedPvalue,
+            x: Array(selectedNames.length).fill(Math.max(...selectedPvalue)+2),
             type:'bar',
             orientation:'h',
-            base:base,
+            // base:base,
+            base: 0,
             showlegend: false,
             // colorscale:'jet',
-            width: 0.1,
-            marker:{color:selectedPvalue, colorscale:'Bluered', colorbar:{title:'-log10(p-value)',y:0.4,len:0.4, thickness:20}}
+            width: 0.000001,
+            // marker:{color:selectedPvalue, colorscale:'Bluered', colorbar:{title:'-log10(p-value)',y:0.4,len:0.4, thickness:20}}
+            // marker:{color:'black', colorbar:{title:'-log10(p-value)',y:0.4,len:0.4, thickness:20}}
+            marker:{color:'black'}
         },{
             y:selectedNames,
             x:selectedPvalueBubble,
@@ -1095,7 +1163,7 @@ async function pathway(ptGene, pt01Out, pt02Out, pt01OutText, pt02OutText){
             mode:'markers',
             showlegend: false,
             // marker:{size:normalizedSelectedIntersectionSize,color:selectedPvalue,colorscale:'Bluered',colorbar:{title:'No of Genes',y:0.6,len:0.4,thickness:15}}
-            marker:{size:normalizedSelectedIntersectionSize,color:selectedPvalue, colorscale:'Bluered',opacity:1}
+            marker:{size:normalizedSelectedIntersectionSize,color:selectedPvalue, colorscale:'Bluered',opacity:1,colorbar:{title:'-log10(p-value)',y:0.4,len:0.4, thickness:10}}
         }
         ]
         var layout = {
@@ -1108,22 +1176,29 @@ async function pathway(ptGene, pt01Out, pt02Out, pt01OutText, pt02OutText){
             },
             width:768,
             height:568,
-            plot_bgcolor:'#ECECEC',
+            // plot_bgcolor:'#ECECEC',
+            plot_bgcolor:'white',
             yaxis:{
-                title:{text:'Pathway',font:{size:20}},
+                // title:{text:'Pathway',font:{size:20}},
                 automargin:'width+right',
                 showgrid:false,
                 autotick: true,
                 showticklabels: true,
                 zeroline: false,
                 ticks:'inside',
+                linecolor: 'black',
+                linewidth: 1,
+                mirror: true
             },
             xaxis:{
-                title:{text:'-log10(p-value)',font:{size:20}},
+                title:{text:'<b>-log10(p-value)</b>',font:{size:20}},
                 showgrid:false,
                 autotick: true,
                 zeroline: false,
                 showticklabels: true,
+                linecolor: 'black',
+                linewidth: 1,
+                mirror: true
             },
             annotations: [{
                 xref: 'paper',
@@ -1142,6 +1217,43 @@ async function pathway(ptGene, pt01Out, pt02Out, pt01OutText, pt02OutText){
         }
         drawNetwork()
       })
+    // pathwat details
+    // pathwayDetailsTable.addEventListener('click',async ()=>{
+    //     const selectedRows = gridOptionsforPathwayDetails.api.getSelectedRows();
+    //     var pathwayDetailsPlot = document.getElementById("canvas-tab2-01-copy")
+    //     var selectedGeneIndecies = []
+    //     var index=0
+    //     for(var row of selectedRows){
+    //         // console.log(row)
+    //         // console.log('row source', row['Source'])
+    //         // console.log('pathway genemap',pathwayGeneMap[row['Source']])
+    //         // for(var gene in pathwayGeneMap[row['Source']]){
+    //         //     selectedGeneIndecies.push(selectedPointsIndices[ptGene.indexOf(querySourceMap[row['Source']][gene])])
+    //         // }
+    //         console.log(row['Source'])
+    //         for(var gene of querySourceMap[row['Source']]){
+    //             console.log(gene+" "+ptGene.indexOf(gene))
+    //             selectedGeneIndecies.push(selectedPointsIndices[ptGene.indexOf(gene)])
+    //         }
+    //     }
+    //     var tab2div01Copy = document.getElementById('canvas-tab2-01-copy');
+    //     await Plotly.restyle(tab2div01Copy, {'selectedpoints': [selectedGeneIndecies], opacity:1,unselected: {
+    //         marker: {
+    //           color: '#00ff00',
+    //           opacity: 0
+    //         }, textfont: {
+    //           color: 'transparent',
+    //           opacity: 0
+    //         }
+    //       }},[1]);
+
+    //     console.log(ptGene)
+    //     console.log(querySourceMap)
+    //     console.log(selectedPointsIndices)
+    //     console.log(selectedGeneIndecies)
+    //     console.log(selectedRows)
+    //     console.log(pathwayTableSelection)
+    // })
     // drawNetwork()
 }
 
@@ -1257,14 +1369,15 @@ function chart(name,value){
             }
         },{
             y:selectedNames,
-            x:selectedPvalue,
+            // x:selectedPvalue,
+            x: Array(selectedPvalue.length).fill(Math.max(...selectedPvalue)+2),
             type:'bar',
-            base:base,
+            // base:base,
             orientation:'h',
             showlegend: false,
             // colorscale:'jet',
-            width: 0.1,
-            marker:{color:selectedPvalue, colorscale:colorscale, colorbar:{title:'-log10(p-value)',y:0.4,len:0.4, thickness:20}}
+            width: 0.000001,
+            marker:{color:'black'}
         },{
             y:selectedNames,
             x:selectedPvalueBubble,
@@ -1272,7 +1385,7 @@ function chart(name,value){
             mode:'markers',
             showlegend: false,
             // marker:{size:normalizedSelectedIntersectionSize,color:selectedPvalue,colorscale:'Bluered',colorbar:{title:'No of Genes',y:0.6,len:0.4,thickness:15}}
-            marker:{size:normalizedSelectedIntersectionSize,color:selectedPvalue,colorscale:colorscale,opacity:1}
+            marker:{size:normalizedSelectedIntersectionSize,color:selectedPvalue,opacity:1,colorscale:colorscale, colorbar:{title:'-log10(p-value)',y:0.4,len:0.4, thickness:10}}
         }
         ]
         var layout = {
@@ -1281,13 +1394,13 @@ function chart(name,value){
             legend:{
                 title:"Size",
                 color:'black',
-                x:1,y:0.9
+                x:1.015,y:0.9
             },
             width:pltWidth,
             height:568,
             plot_bgcolor:plt_bgcolor,
             yaxis:{
-                title:{text:'Pathway',font:{size:20}},
+                // title:{text:'Pathway',font:{size:20}},
                 automargin:'width+right',
                 showgrid:false,
                 autotick: true,
@@ -1297,14 +1410,20 @@ function chart(name,value){
                 ticks:'inside',
                 font:{
                     size:yaxisFontSize
-                }
+                },
+                linecolor: 'black',
+                linewidth: 1,
+                mirror: true,
             },
             xaxis:{
-                title:{text:'-log10(p-value)',font:{size:20}},
+                title:{text:'<b>-log10(p-value)<b>',font:{size:20}},
                 showgrid:false,
                 autotick: true,
                 zeroline: false,
                 showticklabels: true,
+                linecolor: 'black',
+                linewidth: 1,
+                mirror: true,
             },
             annotations: [{
                 xref: 'paper',
@@ -1581,8 +1700,12 @@ async function drawNetwork(){
     var pathwayName = [], pathwayGenes = {}
     var elements = []
     edgesMap={},maxGeneCountInPathway=0
+    console.log(selectedGeneNameInteractionsMap)
     for(var key in selectedGeneNameInteractionsMap){
-        var intersections = selectedGeneNameInteractionsMap[key][0];
+        // var intersections = selectedGeneNameInteractionsMap[key][0];
+        // var intersections = pagGenes.filter(value => ptGene.includes(value))
+        var intersections = pagGenesMap[selectedGeneNameInteractionsMap[key][3]]
+        console.log(intersections)
         var name = key
         pathwayName.push(name)
         elements.push(
@@ -1590,8 +1713,9 @@ async function drawNetwork(){
                 data:{id:name,weight:selectedGeneNameInteractionsMap[key][1],intersectionSize:selectedGeneNameInteractionsMap[key][2]}
             }
         )
-
-        var uniqueList = [...new Set(intersections.flat())];
+        
+        // var uniqueList = [...new Set(intersections.flat())];
+        var uniqueList = intersections
         console.log(uniqueList)
         for(var j=0;j<uniqueList.length;j++){
             if(pathwayGenes[uniqueList[j]]==undefined)
@@ -1905,7 +2029,7 @@ let percentile = (arr, p) => {
 
 function normalizeArray(arr,baseValue) {
     const mean = arr.reduce((acc, val) => acc + val, 0) / arr.length;
-    const stdDev = Math.sqrt(arr.reduce((acc, val) => acc + Math.pow(val - mean, 2), 0) / arr.length);
+    const stdDev = Math.sqrt(arr.reduce((acc, val) => 0.1+acc + Math.pow(val - mean, 2), 0) / arr.length);
     const normalizedArr = arr.map((value) => baseValue+20+(value - mean) * 5 / stdDev);
     return normalizedArr;
   }
@@ -1965,19 +2089,49 @@ const calculatePValue = (array1, array2) => {
   }
   
 
-//   var myHeaders = new Headers();
-//   myHeaders.append("Cookie", "PHPSESSID=9he1k1idc849k6j6gki3jlbn23");
-//   myHeaders.append('Access-Control-Allow-Origin','http://127.0.0.1:5500/')
-// //   myHeaders.append("Access-Control-Allow-Origin", "*");
-// //   myHeaders.append('Accept','*/*');
-// //   myHeaders.append('Connection','keep-alive')
-// //   myHeaders.append('Accept-Encoding','gzip, deflate, br')
-// //   myHeaders.append('User-Agent','PostmanRuntime/7.32.3')
-// //   myHeaders.append('Content-Length','');
-// //   myHeaders.append('Content-Type','multipart/form-data;boundary=141');
-// //   myHeaders.append('Content-Type','');
-// //   myHeaders.append('Host','');
-// //   myHeaders.append('Content-Length',200)
+const getGenesFromPags = async(PAGids)=>{
+    var response;
+    await fetch(PAGIDGENE_URL+PAGids)
+    .then(response => {
+      if (!response.ok) {
+        throw new Error('Network response was not ok');
+      }
+      return response.json(); 
+    })
+    .then(dataArray => {
+      
+      console.log(dataArray);
+      response = dataArray
+    })
+    .catch(error => console.error('Error:', error));
+    return response
+  }
+var pagGenes=[]
+const preProcessPAGGenes = async (pag, response) => {
+    response.forEach((obj)=>{
+        if(pagGenesMap[pag]!=undefined)
+            pagGenesMap[pag].push(obj['GENE_SYM'])
+        else
+            pagGenesMap[pag]=[obj['GENE_SYM']]
+        pagGenes.push(obj['GENE_SYM'])
+    })
+    console.log(pagGenesMap)
+    console.log(pagGenes)
+}
+
+  var myHeaders = new Headers();
+  myHeaders.append("Cookie", "PHPSESSID=9he1k1idc849k6j6gki3jlbn23");
+  myHeaders.append('Access-Control-Allow-Origin','http://127.0.0.1:5500/')
+//   myHeaders.append("Access-Control-Allow-Origin", "*");
+//   myHeaders.append('Accept','*/*');
+//   myHeaders.append('Connection','keep-alive')
+//   myHeaders.append('Accept-Encoding','gzip, deflate, br')
+//   myHeaders.append('User-Agent','PostmanRuntime/7.32.3')
+//   myHeaders.append('Content-Length','');
+//   myHeaders.append('Content-Type','multipart/form-data;boundary=141');
+//   myHeaders.append('Content-Type','');
+//   myHeaders.append('Host','');
+//   myHeaders.append('Content-Length',200)
   
 //   var formdata = new FormData();
 //   formdata.append("genes", "BRCA1%20BRCA2");
@@ -1991,13 +2145,47 @@ const calculatePValue = (array1, array2) => {
 //   formdata.append("cohesion", "0");
 //   formdata.append("pvalue", ".05");
 //   formdata.append("FDR", "0.05");
+
+//   var formdata = {
+//     "genes": ["MYC"],
+//     "source": ["WikiPathway_2021"],
+//     "type": "All",
+//     "sim": 0,
+//     "olap": 1,
+//     "organism": "Homo sapiens",
+//     "cohesion": "0",
+//     "pvalue": 0.05,
+//     "FDR": 0.05,
+//     "ge": 1,
+//     "le": 2000
+// }
   
 //   var requestOptions = {
 //     method: 'POST',
-//     headers: myHeaders,
+//     // headers: myHeaders,
 //     body: formdata,
 //     redirect: 'follow',
 //   };
-//   var response = await fetch("http://discovery.informatics.uab.edu/PAGER/index.php/geneset/pagerapi", requestOptions).catch(error=>console.log('error : '+error));
-//   console.log(response)
+// //   var response = fetch("http://discovery.informatics.uab.edu/PAGER/index.php/geneset/pagerapi", requestOptions).catch(error=>console.log('error : '+error));
+// var response;
+// fetch("http://127.0.0.1:5000/", {
+//   method: 'POST',
+//   headers: {
+//     'Content-Type': 'application/json'
+//   },
+//   body: JSON.stringify(formdata)
+// })
+// .then(response => {
+//   if (!response.ok) {
+//     throw new Error('Network response was not ok');
+//   }
+//   return response.json(); // Parse response body as JSON
+// })
+// .then(dataArray => {
+//   // Iterate over the array of JSON objects
+//   console.log('Pager API result for MYC gene')
+//   console.log(dataArray);
+// })
+// .catch(error => console.error('Error:', error));
 
+// console.log(response)

@@ -161,8 +161,14 @@
         <script> 
             $(function(){
               $("#chatbot-container").load("html/chat.html"); 
+              $("#medispacy-container").load("html/medispacy.html");
             });
             </script> 
+    <!-- PyScript CSS -->
+    <link rel="stylesheet" href="https://pyscript.net/releases/2024.1.1/core.css">
+
+    <!-- This script tag bootstraps PyScript -->
+    <script type="module" src="https://pyscript.net/releases/2024.1.1/core.js"></script>
 <script defer src="runtime.js"></script><script defer src="main.js"></script></head>
 <body class="p-1 bg-white text-dark">
     <!-- <div class="container" style="width: 100%;"> -->
@@ -171,16 +177,18 @@
                 <nav class="navbar navbar-expand-lg navbar-light">
                     <a class="navbar-brand"><h1>GeneTerrain</h1></a>
                     <div class="collapse navbar-collapse" id="navbarSupportedContent" id="nav-tab" role="tablist">
-                    <ul class="navbar-nav mx-auto">
-                      <li class="px-5"><a class="nav-item active" id="nav-GT-tab" data-bs-toggle="tab" data-bs-target="#nav-home" type="button" role="tab" aria-controls="nav-home" aria-selected="true" onclick="document.getElementById('myGrid').style.display='block'" style="display:none">Specific</a></li>
-                      <li class="px-5"><a class="nav-item" id="nav-Sigma-tab" data-bs-toggle="tab" data-bs-target="#nav-profile" type="button" role="tab" aria-controls="nav-profile" aria-selected="false" onclick="document.getElementById('myGrid').style.display='block'" style="display:none">Sigma</a></li>
-                      <li class="px-5 btn btn-light"><a class="nav-item" id="nav-Avg-tab" data-bs-toggle="tab" data-bs-target="#nav-contact" type="button" role="tab" aria-controls="nav-contact" aria-selected="false" onclick="document.getElementById('myGrid').style.display='block'">Basic</a></li>
-                      <li class="px-5 btn btn-light"><a class="nav-item" id="nav-tab2-tab" data-bs-toggle="tab" data-bs-target="#nav-contact" type="button" role="tab" aria-controls="nav-contact" aria-selected="false" onclick="document.getElementById('myGrid').style.display='none'">Compare</a></li>
-                      <li class="px-5 btn btn-light"><a class="nav-item" id="nav-pathway-tab" data-bs-toggle="tab" data-bs-target="#nav-contact" type="button" role="tab" aria-controls="nav-contact" aria-selected="false" onclick="document.getElementById('myGrid').style.display='none'">Pathway</a></li>
-                      <li class="px-5 btn btn-light"><a class="nav-item" id="nav-network-tab" data-bs-toggle="tab" data-bs-target="#nav-contact" type="button" role="tab" aria-controls="nav-contact" aria-selected="false" onclick="document.getElementById('myGrid').style.display='none'">Network</a></li>
-                      <li class="px-5 btn btn-light"><a class="nav-item" id="nav-comp-before-after-tab" data-bs-toggle="tab" data-bs-target="#nav-contact" type="button" role="tab" aria-controls="nav-contact" aria-selected="false" onclick="document.getElementById('myGrid').style.display='none'">Slider GT</a></li>
-                      <li class="px-5 btn btn-light"><a class="nav-item" id="nav-api-tab" data-bs-toggle="tab" data-bs-target="#nav-contact" type="button" role="tab" aria-controls="nav-contact" aria-selected="false" onclick="document.getElementById('myGrid').style.display='none'">API</a></li>
-                      <li class="px-5 btn btn-light"><a class="nav-item" id="nav-help-tab" data-bs-toggle="tab" data-bs-target="#nav-contact" type="button" role="tab" aria-controls="nav-contact" aria-selected="false" onclick="document.getElementById('myGrid').style.display='none'">Help</a></li>
+                    <ul class="navbar-nav mx-auto navbar-GT">
+                      <!-- classname for anchor tag should have nav-item -->
+                      <li class="px-5"><a class="nav-item active" id="nav-GT-tab" data-bs-toggle="tab" data-bs-target="#nav-home" type="button" role="tab" aria-controls="nav-home" aria-selected="true" onclick=hideClinicalDataTable() style="display:none">Specific</a></li>
+                      <li class="px-5"><a class="nav-item" id="nav-Sigma-tab" data-bs-toggle="tab" data-bs-target="#nav-profile" type="button" role="tab" aria-controls="nav-profile" aria-selected="false" onclick=hideClinicalDataTable() style="display:none">Sigma</a></li>
+                      <li class="px-5 btn btn-light"><a class="nav-item" id="nav-Avg-tab" data-bs-toggle="tab" data-bs-target="#nav-contact" type="button" role="tab" aria-controls="nav-contact" aria-selected="false" onclick=displayClinicalDataTable()>Basic</a></li>
+                      <li class="px-5 btn btn-light"><a class="nav-item" id="nav-compare-tab" data-bs-toggle="tab" data-bs-target="#nav-contact" type="button" role="tab" aria-controls="nav-contact" aria-selected="false" onclick=hideClinicalDataTable()>Compare</a></li>
+                      <li class="px-5 btn btn-light"><a class="nav-item" id="nav-pathway-tab" data-bs-toggle="tab" data-bs-target="#nav-contact" type="button" role="tab" aria-controls="nav-contact" aria-selected="false" onclick=displayPathwayDataTable()>Pathway</a></li>
+                      <li class="px-5 btn btn-light"><a class="nav-item" id="nav-pathway-details-tab" data-bs-toggle="tab" data-bs-target="#nav-contact" type="button" role="tab" aria-controls="nav-contact" aria-selected="false" onclick=displayPathwayDataTable()>Pathway Details</a></li>
+                      <li class="px-5 btn btn-light"><a class="nav-item" id="nav-network-tab" data-bs-toggle="tab" data-bs-target="#nav-contact" type="button" role="tab" aria-controls="nav-contact" aria-selected="false" onclick=hideClinicalDataTable()>Network</a></li>
+                      <li class="px-5 btn btn-light"><a class="nav-item" id="nav-comp-before-after-tab" data-bs-toggle="tab" data-bs-target="#nav-contact" type="button" role="tab" aria-controls="nav-contact" aria-selected="false" onclick=hideClinicalDataTable()>Slider GT</a></li>
+                      <li class="px-5 btn btn-light"><a class="nav-item" id="nav-api-tab" data-bs-toggle="tab" data-bs-target="#nav-contact" type="button" role="tab" aria-controls="nav-contact" aria-selected="false" onclick=hideClinicalDataTable()>API</a></li>
+                      <li class="px-5 btn btn-light"><a class="nav-item" id="nav-help-tab" data-bs-toggle="tab" data-bs-target="#nav-contact" type="button" role="tab" aria-controls="nav-contact" aria-selected="false" onclick=hideClinicalDataTable()>Help</a></li>
                     </ul>
                     </div><br>
                   </nav>
@@ -411,6 +419,9 @@
                             </div>
                         <!-- sigma -->
                         <div class="tab-pane fade" id="nav-Sigma" role="tabpanel" aria-labelledby="nav-Sigma-tab">
+                            <!-- <p id="para"></p>
+                            <py-config src="./pyscript.toml"></py-config>
+                            <py-script src="./main.py"></py-script> -->
                             <div id="canvas-div1" style="width: 720; height: 720;"></div>
                             <div id="download image div3" style="margin-left: 200px;">
                                 <input type="button" class="btn btn-primary" value="Download Image" id="download-image3" style="display:none">
@@ -428,7 +439,7 @@
                             <div id="canvas-div04" style="width: 720; height: 720;"></div>
                         </div>
                         <!-- tab2 -->
-                        <div class="tab-pane fade" id="nav-tab2" role="tabpanel" aria-labelledby="nav-tab2-tab">
+                        <div class="tab-pane fade" id="nav-compare" role="tabpanel" aria-labelledby="nav-compare-tab">
                             <div>
                                 <div id="myGridTab2-01" class="ag-theme-alpine"></div>
                                 <div id="myGridTab2-02" class="ag-theme-alpine"></div>
@@ -457,13 +468,13 @@
                         <!-- Pathway -->
                         <div class="tab-pane fade" id="nav-pathway" role="tabpanel" aria-labelledby="nav-pathway-tab" style="width:90%">
                             <div>
-                            <div id="gene-pathway-table" class="ag-theme-alpine"></div><br>
-                            <input type="submit" value="Generate" id="Generate_Pathway" class="btn btn-primary" style="display:none; margin: auto">
-                            <div id="gene-pathway-graph"></div><br>
-                            <div id="pathway-scatter"></div><br>
+                                <div id="gene-pathway-table" class="ag-theme-alpine"></div><br>
+                                <input type="submit" value="Generate" id="Generate_Pathway" class="btn btn-primary" style="display:none; margin: auto">
+                                <div id="gene-pathway-graph"></div><br>
+                                <div id="pathway-scatter"></div><br>
                             </div><br>
                             <div id="pathwayResultInfo" class="ag-theme-alpine"></div><br>
-                            <div id="selectedResultBarPlot" style="width:90%"></div>
+                            <div id="selectedResultBarPlot" style="width:90%; font-weight: bold;"></div>
                             <br>
                             <div class="grid-container">
                                 <!-- Row 1 -->
@@ -550,6 +561,7 @@
                                     <div class="grid-item col-sm p-1">
                                         <label for="input9">Plot Theme</label><br>
                                         <select id="input9" class="form-select form-select-lg mb-3 w-50 h-50 pathway-selection" name="Plot Theme">
+                                            <option value="white">White</option>
                                             <option value="#A9A9A9">Dark</option>
                                             <option value="#D3D3D3">Gray</option>
                                             <option value="#808080">Classic</option>
@@ -574,6 +586,28 @@
                                 </div>
                             </div>
                         </div>
+                        <!-- Pathway Details -->
+                        <div class="tab-pane fade" id="nav-pathway-details" role="tabpanel" aria-labelledby="nav-pathway-details-tab" style="width:90%">
+                            <div id="gene-pathway-details-table" class="ag-theme-alpine" style="display: none;"></div><br>
+                            <div id="gene-pathway-details-table1" class="ag-theme-alpine"></div><br>
+                            <div id="store-genes" style="display: none;">
+                                <input type="text" value="canvas-div" id="store-plotly-div">
+                                 <input type="text" value="" id="store-genes-input">
+                                <input type="text" value="" id="store-genes-index">
+                                <input type="text" value="" id="store-genes-x">
+                                <input type="text" value="" id="store-genes-y">
+                                <input type="text" value="" id="store-event-data">
+                                <input type="text" value="" id="store-genes-input-bypagid">
+                            </div>
+                            <div>
+                                <input type="submit" value="Generate" id="Generate-PD" class="btn btn-primary">
+                            </div><br>
+                            <div id="canvas-tab2-01-copy" style="width: 720px; height: 720px;"></div>
+                            <!-- medispacy = d5e899eb-741b-4749-ab48-ec161b1138f5 -->
+                            <!-- <div id="medispacy-container"></div> -->
+
+                            <div id="canvas-tab2-01-maskedGT" style="width: 720px; height: 720px;"></div>
+                        </div>
                         <!-- Network -->
                         <div class="tab-pane fade" id="nav-network" role="tabpanel" aria-labelledby="nav-network-tab" style="width:90%">
                             <div class="grid-item col-sm p-1">
@@ -582,6 +616,7 @@
                             </div>
                             <div id="cy"></div>
                         </div>
+                        <!-- Slider compare -->
                         <div class="tab-pane fade" id="nav-comp-before-after" role="tabpanel" aria-labelledby="nav-comp-before-after-tab" style="width:90%">
                             <div class="img-comp-container" style="display:none" id="img-comp-container-id">
                                 <p>Click and slide the blue slider to compare two images:</p>
@@ -597,6 +632,7 @@
                             initComparisons();
                             </script>
                         </div>
+                        <!-- GPT API -->
                         <div class="tab-pane fade" id="nav-api" role="tabpanel" aria-labelledby="nav-api-tab" style="width:90%">
                             <!-- <div id="search-container">
                                 <input type="text" id="search-box" placeholder="Enter your search term">
@@ -607,6 +643,9 @@
                                 Result content will go here
                             </div> -->
                             <div id="chatbot-container"></div>
+                        </div>
+                        <!-- help tab -->
+                        <div class="tab-pane fade" id="nav-help" role="tabpanel" aria-labelledby="nav-help-tab" style="width:90%; display:none">
                         </div>
                     </div>
                       </div>
@@ -627,6 +666,7 @@
                     <p>You can find out how to get access to it in Chrome Canary
                     <a href="https://web.dev/gpu/#use">here</a>.</p>
             </div>
+            
             </div>
         <!-- </div> -->
         <!-- <script src="js/plotly_events.js"></script> -->

@@ -11,21 +11,35 @@ var genes=[];
 var geneRelationMapName= new Map<string, any>();
 var geneRelationMapScore= new Map<string, any>();
 var expGeneMap = new Map<string, any>();
-var plotDataURLS = ['https://discovery.informatics.uab.edu/apex/gtkb/sample/all?offset=',
-                    'https://discovery.informatics.uab.edu/apex/gtkb/clinical_data/GBM/CGGA/MRNA_301?offset=',
-                    'https://discovery.informatics.uab.edu/apex/gtkb/clinical_data/GBM/CGGA/MRNA_325?offset=',
-                    'https://discovery.informatics.uab.edu/apex/gtkb/clinical_data/GBM/CGGA/GLSS?offset=']
+// var plotDataURLS = ['https://discovery.informatics.uab.edu/apex/gtkb/sample/all?offset=',
+//                     'https://discovery.informatics.uab.edu/apex/gtkb/clinical_data/GBM/CGGA/MRNA_301?offset=',
+//                     'https://discovery.informatics.uab.edu/apex/gtkb/clinical_data/GBM/CGGA/MRNA_325?offset=',
+//                     'https://discovery.informatics.uab.edu/apex/gtkb/clinical_data/GBM/CGGA/GLSS?offset=']
+
+// var expURLS = {
+//     "TCGA":"https://discovery.informatics.uab.edu/apex/gtkb/gene_exp/cleaned_GBM/TCGA/",
+//   "GSM":"https://discovery.informatics.uab.edu/apex/gtkb/gene_exp/cleaned_gbm/CGGA_Illumina_HiSeq_2000/",
+//   "CGGA":"https://discovery.informatics.uab.edu/apex/gtkb/gene_exp/cleaned_gbm/CGGA_Illumina_HiSeq_2000_or_2500/",
+//   "IVYGAP": "https://discovery.informatics.uab.edu/apex/gtkb/gene_exp/cleaned_gbm/IvyGap/",
+//   "GLSS":"https://discovery.informatics.uab.edu/apex/gtkb/gene_exp/cleaned_gbm/GLSS/"
+// }
+
+var plotDataURLS = ['https://aimed.uab.edu/apex/gtkb/sample/all?offset=',
+                    'https://aimed.uab.edu/apex/gtkb/clinical_data/GBM/CGGA/MRNA_301?offset=',
+                    'https://aimed.uab.edu/apex/gtkb/clinical_data/GBM/CGGA/MRNA_325?offset=',
+                    'https://aimed.uab.edu/apex/gtkb/clinical_data/GBM/CGGA/GLSS?offset=']
 
 var expURLS = {
-    "TCGA":"https://discovery.informatics.uab.edu/apex/gtkb/gene_exp/cleaned_GBM/TCGA/",
-  "GSM":"https://discovery.informatics.uab.edu/apex/gtkb/gene_exp/cleaned_gbm/CGGA_Illumina_HiSeq_2000/",
-  "CGGA":"https://discovery.informatics.uab.edu/apex/gtkb/gene_exp/cleaned_gbm/CGGA_Illumina_HiSeq_2000_or_2500/",
-  "IVYGAP": "https://discovery.informatics.uab.edu/apex/gtkb/gene_exp/cleaned_gbm/IvyGap/",
-  "GLSS":"https://discovery.informatics.uab.edu/apex/gtkb/gene_exp/cleaned_gbm/GLSS/"
+    "TCGA":"https://aimed.uab.edu/apex/gtkb/gene_exp/cleaned_GBM/TCGA/",
+  "GSM":"https://aimed.uab.edu/apex/gtkb/gene_exp/cleaned_gbm/CGGA_Illumina_HiSeq_2000/",
+  "CGGA":"https://aimed.uab.edu/apex/gtkb/gene_exp/cleaned_gbm/CGGA_Illumina_HiSeq_2000_or_2500/",
+  "IVYGAP": "https://aimed.uab.edu/apex/gtkb/gene_exp/cleaned_gbm/IvyGap/",
+  "GLSS":"https://aimed.uab.edu/apex/gtkb/gene_exp/cleaned_gbm/GLSS/"
 }
+
 export async function loadAllExpData(){
 
-    const url = 'https://discovery.informatics.uab.edu/apex/gtkb/gene_exp/all?offset='
+    const url = 'https://aimed.uab.edu/apex/gtkb/gene_exp/all?offset='
     // const url = 'https://discovery.informatics.uab.edu/apex/gtkb/gene_exp/GBM?offset='
     // const url = 'https://discovery.informatics.uab.edu/apex/gtkb/gene_exp/cleaned_gbm?offset='
     var i=0,limit=10000;
@@ -176,7 +190,7 @@ export async function loadExpData1(sampleIDS: string[]){
     expOutput=[];
     // const url = 'https://discovery.informatics.uab.edu/apex/gtkb/gene_exp/all?offset='
     // const url = 'https://discovery.informatics.uab.edu/apex/gtkb/gene_exp/GBM?offset='
-    const url = 'https://discovery.informatics.uab.edu/apex/gtkb/gene_exp/'
+    const url = 'https://aimed.uab.edu/apex/gtkb/gene_exp/'
     var i=0,limit=10000;
     for(var sample of sampleIDS){
         while(true){
@@ -206,7 +220,7 @@ export async function loadExpData1(sampleIDS: string[]){
 
 export async function loadLayoutData(){
 
-    const url = 'https://discovery.informatics.uab.edu/apex/gtkb/layout/all?offset='
+    const url = 'https://aimed.uab.edu/apex/gtkb/layout/all?offset='
     var i=0,limit=100;
     while(true){
         var updatedURL=url+(i++*limit).toString();

@@ -143,7 +143,7 @@ async function parseChatGPTOutput(response: string){
     return response
 }
 
-const apiKey = "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"
+const apiKey = "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"
 
 async function openaiAPI(prompt: string){
     const openai = new OpenAI({ apiKey: apiKey, dangerouslyAllowBrowser: true});

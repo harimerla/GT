@@ -9,10 +9,12 @@ import { DataFrame } from "pandas-js";
 import {drawPlot} from './plot'
 import {exportToHtml,getExpData1, getAGPLOT, preProcessExpData, getSelection,mergeLayoutExpData,getTab2Selection01,getTab2Selection02} from './preProcessing'
 import {loadPlotData,loadLayoutData, loadExpData, getExp, getXandY, getGenes,loadGeneRelation,getGeneReationMapName,getExpGeneMap} from './rest'
-import {drawSpecificPlot,drawAllSigmaPlot,drawTab1Plot,changeSigma,rotate90DegreesCounterClockwise, purgeDivs,drawTab2Plot02,drawTab2Plot01,updateExpDataInPlot} from './plotlyCode'
-import {callPagerAPI} from './pager'
+import {drawSpecificPlot,drawAllSigmaPlot,drawTab1Plot,changeSigma,changeSigmaCustomDiv,rotate90DegreesCounterClockwise, purgeDivs,drawTab2Plot02,drawTab2Plot01,updateExpDataInPlot,drawPathwayDetails} from './plotlyCode'
+import {callPagerAPI} from './pager/pager'
+import {pagerAGGrid} from './pager/pagerAGGrid'
 import {react_select_options_cancer_type, react_select_options_select_genes} from './selectOptions'
 import {Chat} from './chat'
+import {navbar} from './navbar'
 import {extractBarPlot} from './plotly_events'
 var store = require('store')
 // import RangeSlider from '@spreadtheweb/multi-range-slider';
@@ -38,6 +40,8 @@ import * as Plotly from 'plotly.js-dist';
 // module.exports = Plotly;
 // import * as $ from '../dist/js/jquery-3.5.1.min.js';
 import $ from '../dist/js/jquery-3.5.1.min.js';
+import { send } from './medispacy';
+import { PlotlyHTMLElement } from 'plotly.js';
 
 function on<T extends HTMLElement, K extends keyof HTMLElementEventMap>(
   element: T,
@@ -729,6 +733,38 @@ while(true){
     // tab2HeatMapdata02=dataOnlyResult;
     updateExpDataInPlot(tab2HeatMapdata01,tab2HeatMapdata02,tab2FinalData01,tab2FinalData02,tab2WeightsArrayMap01,tab2WeightsArrayMap02,tab2Exp01,tab2Exp02,selectionLen1,selectionLen2);
   }
+  else if(lastIternation==42){
+    tab2FinalData01=finalData;
+    tab2Exp01=summedExp;
+    selectionLen1=selectionLen;
+    tab2WeightsArrayMap01 = store.get('expGeneMap');
+    tab2HeatMapdata01 = [{
+      z: finalData,
+      //z: finalData,
+      colorscale: 'Jet',
+      colorbar: {len:1,thickness:10},
+      thickness: 1,
+      type: 'heatmap',
+      // text: finalData,
+      hoverinfo: true,
+      name: 'heatmap',
+      zmin: scaleMin,
+      zmax: scaleMax
+    },{
+      x: normalize(x),
+      y: normalize(y),
+      z: finalData,
+      mode: 'markers+text',
+      type: 'scatter',
+      text: geneName,
+      colorscale: 'Jet',
+      hoverinfo:true,
+      visible: 'legendonly',
+      name: 'Gene Name',
+      args: {z:finalData, exp:summedExp}}]
+    drawPathwayDetails(tab2HeatMapdata01,layout,dataOnlyResult);
+  }
+  data=dataOnlyResult;
   //device.queue.submit([commandEncoder.finish()]);
   break;
 }
@@ -786,6 +822,7 @@ var expData, expressionData, layoutDataX, layoutDataY, geneName, layoutDataName,
 var a,b,weightsArrayMap;
 var layoutDataMap = new Map<string, any>();
 var f=false;
+var storePlotlyDiv = document.getElementById("store-plotly-div") as HTMLInputElement;
 expression.addEventListener('change', ()=>{
   sleep(2000);
   var file = expression.files[0];
@@ -893,6 +930,7 @@ var xIndex=0,yIndex=0,nameIndex=0,expIndex=0;
 //     //console.log('layoutDataMap'+layoutDataX);
 //   }
 // }
+
 var plotLayout = {
   width:768,
   height:768,
@@ -912,10 +950,20 @@ var plotLayout = {
 var sigmaInput = document.getElementById('sigma_range') as HTMLInputElement;
 var sigma=0.5;
 var sigmaIndexMap = {0:0,0.05:1, 0.1:2,0.15:3, 0.2:4,0.25:5,0.3:6,0.35:7,0.4:8,0.45:9, 0.5:10,0.55:11,0.6:12,0.65:13, 0.7:14,0.75:15, 0.8:16,0.85:17, 0.9:18,0.95:19,1:20}
+console.log(sigmaIndexMap)
+store.set('sigma',sigma)
+store.set('sigmaIndexMap',sigmaIndexMap)
+store.set('resolution',resolution)
 sigmaInput.addEventListener('change', ()=>{
-  callPagerAPI()
-  changeSigma(sigmaInput,data,sigmaIndexMap,sigma,resolution)
+  // callPagerAPI()
+  changeSigma(sigmaInput,data,sigmaIndexMap,sigma,resolution,lastIternation)
 })
+
+// var maskedGT = document.getElementById("canvas-tab2-01-maskedGT") as PlotlyHTMLElement;
+// maskedGT.on('plotly_click',(eventData)=>{
+//   alert('Zoom event')
+//   changeSigmaCustomDiv(sigmaInput,data,sigmaIndexMap,sigma,resolution,lastIternation)
+// })
 
 // var slider = document.getElementById('range-slider-example');
 var slider = document.getElementById('parentScale');
@@ -961,6 +1009,8 @@ slider.addEventListener('click', ()=>{
       img.href=url;
     })});
   }
+  // Plotly.restyle('canvas-tab2-01-copy', {zmin:scaleMin, zmax:scaleMax}, [0]);
+  Plotly.restyle('canvas-tab2-01-maskedGT', {zmin:scaleMin, zmax:scaleMax}, [0]);
 })
 // scaleInputMax.addEventListener('change',()=>{
 //   scaleMax=+scaleInputMax.value;
@@ -1035,253 +1085,256 @@ downloadDiv2.addEventListener('click',()=>{
 })
 
 // Tabs
-var navGT = document.getElementById('nav-GT-tab') as HTMLButtonElement;
-var navSigma = document.getElementById('nav-Sigma-tab') as HTMLButtonElement;
-var navAvg = document.getElementById('nav-Avg-tab') as HTMLButtonElement;
-var navTab2 = document.getElementById('nav-tab2-tab') as HTMLButtonElement;
-var navNetwork = document.getElementById('nav-network-tab') as HTMLButtonElement;
-var navPathway = document.getElementById('nav-pathway-tab') as HTMLButtonElement;
-var navCompBeforeAfter = document.getElementById('nav-comp-before-after-tab') as HTMLButtonElement;
-var navAPI = document.getElementById('nav-api-tab') as HTMLButtonElement;
-var navContentGTDiv = document.getElementById('nav-GT') as HTMLButtonElement;
-var navContentSigmaDiv = document.getElementById('nav-Sigma') as HTMLButtonElement;
-var navContentAvgDiv = document.getElementById('nav-Avg') as HTMLButtonElement;
-var navContentTab2Div = document.getElementById('nav-tab2') as HTMLButtonElement;
-var navContentNetworkDiv = document.getElementById('nav-network') as HTMLButtonElement;
-var navContentPathWayDiv = document.getElementById('nav-pathway') as HTMLButtonElement;
-var navContentCompBeforeAfterDiv = document.getElementById('nav-comp-before-after') as HTMLButtonElement;
-var navContentAPIDiv = document.getElementById("nav-api") as HTMLButtonElement;
-navGT.addEventListener('click',()=>{
-  navGT.className='nav-item active'
-  navSigma.className='nav-item'
-  navAvg.className='nav-item'
-  navTab2.className='nav-item'
-  navNetwork.className='nav-item'
-  navPathway.className='nav-item'
-  navCompBeforeAfter.className='nav-item'
-  navGT.ariaSelected='true'
-  navSigma.ariaSelected='false'
-  navAvg.ariaSelected='false'
-  navTab2.ariaSelected='false'
-  navNetwork.ariaSelected='false'
-  navPathway.ariaSelected='false'
-  navCompBeforeAfter.ariaSelected='false'
-  navContentGTDiv.className='tab-pane fade show active'
-  navContentSigmaDiv.className='tab-pane fade'
-  navContentAvgDiv.className='tab-pane fade'
-  navContentTab2Div.className='tab-pane fade'
-  navContentNetworkDiv.className='tab-pane fade'
-  navContentPathWayDiv.className='tab-pane fade'
-  navContentCompBeforeAfterDiv.className='tab-pane fade'
-  navAPI.className='nav-item'
-  navAPI.ariaSelected='false'
-  navContentAPIDiv.className='tab-pane fade'
-})
-navSigma.addEventListener('click',()=>{
-  navSigma.className='nav-item active'
-  navGT.className='nav-item'
-  navAvg.className='nav-item'
-  navTab2.className='nav-item'
-  navNetwork.className='nav-item'
-  navSigma.ariaSelected='true'
-  navGT.ariaSelected='false'
-  navAvg.ariaSelected='false'
-  navTab2.ariaSelected='false'
-  navNetwork.ariaSelected='false'
-  navContentSigmaDiv.className='tab-pane fade show active'
-  navContentGTDiv.className='tab-pane fade'
-  navContentAvgDiv.className='tab-pane fade'
-  navContentTab2Div.className='tab-pane fade'
-  navContentNetworkDiv.className='tab-pane fade'
-  navPathway.className='nav-item'
-  navPathway.ariaSelected='false'
-  navContentPathWayDiv.className='tab-pane fade'
-  navCompBeforeAfter.className='nav-item'
-  navCompBeforeAfter.ariaSelected='false'
-  navContentCompBeforeAfterDiv.className='tab-pane fade'
-  navAPI.className='nav-item'
-  navAPI.ariaSelected='false'
-  navContentAPIDiv.className='tab-pane fade'
-})
-navAvg.addEventListener('click',()=>{
-  navAvg.className='nav-item active'
-  navSigma.className='nav-item'
-  navGT.className='nav-item'
-  navTab2.className='nav-item'
-  navNetwork.className='nav-item'
-  navAvg.ariaSelected='true'
-  navSigma.ariaSelected='false'
-  navGT.ariaSelected='false'
-  navTab2.ariaSelected='false'
-  navNetwork.ariaSelected='false'
-  navContentAvgDiv.className='tab-pane fade show active'
-  navContentSigmaDiv.className='tab-pane fade'
-  navContentGTDiv.className='tab-pane fade'
-  navContentTab2Div.className='tab-pane fade'
-  navContentNetworkDiv.className='tab-pane fade'
-  navPathway.className='nav-item'
-  navPathway.ariaSelected='false'
-  navContentPathWayDiv.className='tab-pane fade'
-  navCompBeforeAfter.className='nav-item'
-  navCompBeforeAfter.ariaSelected='false'
-  navContentCompBeforeAfterDiv.className='tab-pane fade'
-  navAPI.className='nav-item'
-  navAPI.ariaSelected='false'
-  navContentAPIDiv.className='tab-pane fade'
-})
-navTab2.addEventListener('click',()=>{
-  navTab2.className='nav-item active'
-  navSigma.className='nav-item'
-  navGT.className='nav-item'
-  navAvg.className='nav-item'
-  navNetwork.className='nav-item'
-  navTab2.ariaSelected='true'
-  navSigma.ariaSelected='false'
-  navGT.ariaSelected='false'
-  navAvg.ariaSelected='false'
-  navNetwork.ariaSelected='false'
-  navContentTab2Div.className='tab-pane fade show active'
-  navContentSigmaDiv.className='tab-pane fade'
-  navContentGTDiv.className='tab-pane fade'
-  navContentAvgDiv.className='tab-pane fade'
-  navContentNetworkDiv.className='tab-pane fade'
-  navPathway.className='nav-item'
-  navPathway.ariaSelected='false'
-  navContentPathWayDiv.className='tab-pane fade'
-  navCompBeforeAfter.className='nav-item'
-  navCompBeforeAfter.ariaSelected='false'
-  navContentCompBeforeAfterDiv.className='tab-pane fade'
-  navAPI.className='nav-item'
-  navAPI.ariaSelected='false'
-  navContentAPIDiv.className='tab-pane fade'
-})
+// var navGT = document.getElementById('nav-GT-tab') as HTMLButtonElement;
+// var navSigma = document.getElementById('nav-Sigma-tab') as HTMLButtonElement;
+// var navAvg = document.getElementById('nav-Avg-tab') as HTMLButtonElement;
+// var navTab2 = document.getElementById('nav-tab2-tab') as HTMLButtonElement;
+// var navNetwork = document.getElementById('nav-network-tab') as HTMLButtonElement;
+// var navPathway = document.getElementById('nav-pathway-tab') as HTMLButtonElement;
+// var navCompBeforeAfter = document.getElementById('nav-comp-before-after-tab') as HTMLButtonElement;
+// var navAPI = document.getElementById('nav-api-tab') as HTMLButtonElement;
+// var navContentGTDiv = document.getElementById('nav-GT') as HTMLButtonElement;
+// var navContentSigmaDiv = document.getElementById('nav-Sigma') as HTMLButtonElement;
+// var navContentAvgDiv = document.getElementById('nav-Avg') as HTMLButtonElement;
+// var navContentTab2Div = document.getElementById('nav-tab2') as HTMLButtonElement;
+// var navContentNetworkDiv = document.getElementById('nav-network') as HTMLButtonElement;
+// var navContentPathWayDiv = document.getElementById('nav-pathway') as HTMLButtonElement;
+// var navContentCompBeforeAfterDiv = document.getElementById('nav-comp-before-after') as HTMLButtonElement;
+// var navContentAPIDiv = document.getElementById("nav-api") as HTMLButtonElement;
+// navGT.addEventListener('click',()=>{
+//   navGT.className='nav-item active'
+//   navSigma.className='nav-item'
+//   navAvg.className='nav-item'
+//   navTab2.className='nav-item'
+//   navNetwork.className='nav-item'
+//   navPathway.className='nav-item'
+//   navCompBeforeAfter.className='nav-item'
+//   navGT.ariaSelected='true'
+//   navSigma.ariaSelected='false'
+//   navAvg.ariaSelected='false'
+//   navTab2.ariaSelected='false'
+//   navNetwork.ariaSelected='false'
+//   navPathway.ariaSelected='false'
+//   navCompBeforeAfter.ariaSelected='false'
+//   navContentGTDiv.className='tab-pane fade show active'
+//   navContentSigmaDiv.className='tab-pane fade'
+//   navContentAvgDiv.className='tab-pane fade'
+//   navContentTab2Div.className='tab-pane fade'
+//   navContentNetworkDiv.className='tab-pane fade'
+//   navContentPathWayDiv.className='tab-pane fade'
+//   navContentCompBeforeAfterDiv.className='tab-pane fade'
+//   navAPI.className='nav-item'
+//   navAPI.ariaSelected='false'
+//   navContentAPIDiv.className='tab-pane fade'
+// })
+// navSigma.addEventListener('click',()=>{
+//   navSigma.className='nav-item active'
+//   navGT.className='nav-item'
+//   navAvg.className='nav-item'
+//   navTab2.className='nav-item'
+//   navNetwork.className='nav-item'
+//   navSigma.ariaSelected='true'
+//   navGT.ariaSelected='false'
+//   navAvg.ariaSelected='false'
+//   navTab2.ariaSelected='false'
+//   navNetwork.ariaSelected='false'
+//   navContentSigmaDiv.className='tab-pane fade show active'
+//   navContentGTDiv.className='tab-pane fade'
+//   navContentAvgDiv.className='tab-pane fade'
+//   navContentTab2Div.className='tab-pane fade'
+//   navContentNetworkDiv.className='tab-pane fade'
+//   navPathway.className='nav-item'
+//   navPathway.ariaSelected='false'
+//   navContentPathWayDiv.className='tab-pane fade'
+//   navCompBeforeAfter.className='nav-item'
+//   navCompBeforeAfter.ariaSelected='false'
+//   navContentCompBeforeAfterDiv.className='tab-pane fade'
+//   navAPI.className='nav-item'
+//   navAPI.ariaSelected='false'
+//   navContentAPIDiv.className='tab-pane fade'
+// })
+// navAvg.addEventListener('click',()=>{
+//   navAvg.className='nav-item active'
+//   navSigma.className='nav-item'
+//   navGT.className='nav-item'
+//   navTab2.className='nav-item'
+//   navNetwork.className='nav-item'
+//   navAvg.ariaSelected='true'
+//   navSigma.ariaSelected='false'
+//   navGT.ariaSelected='false'
+//   navTab2.ariaSelected='false'
+//   navNetwork.ariaSelected='false'
+//   navContentAvgDiv.className='tab-pane fade show active'
+//   navContentSigmaDiv.className='tab-pane fade'
+//   navContentGTDiv.className='tab-pane fade'
+//   navContentTab2Div.className='tab-pane fade'
+//   navContentNetworkDiv.className='tab-pane fade'
+//   navPathway.className='nav-item'
+//   navPathway.ariaSelected='false'
+//   navContentPathWayDiv.className='tab-pane fade'
+//   navCompBeforeAfter.className='nav-item'
+//   navCompBeforeAfter.ariaSelected='false'
+//   navContentCompBeforeAfterDiv.className='tab-pane fade'
+//   navAPI.className='nav-item'
+//   navAPI.ariaSelected='false'
+//   navContentAPIDiv.className='tab-pane fade'
+// })
+// navTab2.addEventListener('click',()=>{
+//   navTab2.className='nav-item active'
+//   navSigma.className='nav-item'
+//   navGT.className='nav-item'
+//   navAvg.className='nav-item'
+//   navNetwork.className='nav-item'
+//   navTab2.ariaSelected='true'
+//   navSigma.ariaSelected='false'
+//   navGT.ariaSelected='false'
+//   navAvg.ariaSelected='false'
+//   navNetwork.ariaSelected='false'
+//   navContentTab2Div.className='tab-pane fade show active'
+//   navContentSigmaDiv.className='tab-pane fade'
+//   navContentGTDiv.className='tab-pane fade'
+//   navContentAvgDiv.className='tab-pane fade'
+//   navContentNetworkDiv.className='tab-pane fade'
+//   navPathway.className='nav-item'
+//   navPathway.ariaSelected='false'
+//   navContentPathWayDiv.className='tab-pane fade'
+//   navCompBeforeAfter.className='nav-item'
+//   navCompBeforeAfter.ariaSelected='false'
+//   navContentCompBeforeAfterDiv.className='tab-pane fade'
+//   navAPI.className='nav-item'
+//   navAPI.ariaSelected='false'
+//   navContentAPIDiv.className='tab-pane fade'
+// })
 
-navPathway.addEventListener('click',()=>{
-  navTab2.className='nav-item'
-  navSigma.className='nav-item'
-  navGT.className='nav-item'
-  navAvg.className='nav-item'
-  navNetwork.className='nav-item'
-  navTab2.ariaSelected='false'
-  navSigma.ariaSelected='false'
-  navGT.ariaSelected='false'
-  navAvg.ariaSelected='false'
-  navNetwork.ariaSelected='false'
-  navContentTab2Div.className='tab-pane fade'
-  navContentSigmaDiv.className='tab-pane fade'
-  navContentGTDiv.className='tab-pane fade'
-  navContentAvgDiv.className='tab-pane fade'
-  navContentNetworkDiv.className='tab-pane fade'
-  navPathway.className='nav-item active'
-  navPathway.ariaSelected='true'
-  navContentPathWayDiv.className='tab-pane fade show active'
-  navCompBeforeAfter.className='nav-item'
-  navCompBeforeAfter.ariaSelected='false'
-  navContentCompBeforeAfterDiv.className='tab-pane fade'
-  navAPI.className='nav-item'
-  navAPI.ariaSelected='false'
-  navContentAPIDiv.className='tab-pane fade'
-})
+// navPathway.addEventListener('click',()=>{
+//   navTab2.className='nav-item'
+//   navSigma.className='nav-item'
+//   navGT.className='nav-item'
+//   navAvg.className='nav-item'
+//   navNetwork.className='nav-item'
+//   navTab2.ariaSelected='false'
+//   navSigma.ariaSelected='false'
+//   navGT.ariaSelected='false'
+//   navAvg.ariaSelected='false'
+//   navNetwork.ariaSelected='false'
+//   navContentTab2Div.className='tab-pane fade'
+//   navContentSigmaDiv.className='tab-pane fade'
+//   navContentGTDiv.className='tab-pane fade'
+//   navContentAvgDiv.className='tab-pane fade'
+//   navContentNetworkDiv.className='tab-pane fade'
+//   navPathway.className='nav-item active'
+//   navPathway.ariaSelected='true'
+//   navContentPathWayDiv.className='tab-pane fade show active'
+//   navCompBeforeAfter.className='nav-item'
+//   navCompBeforeAfter.ariaSelected='false'
+//   navContentCompBeforeAfterDiv.className='tab-pane fade'
+//   navAPI.className='nav-item'
+//   navAPI.ariaSelected='false'
+//   navContentAPIDiv.className='tab-pane fade'
+// })
 
-navNetwork.addEventListener('click',()=>{
-  navGT.className='nav-item'
-  navSigma.className='nav-item'
-  navAvg.className='nav-item'
-  navTab2.className='nav-item'
-  navNetwork.className='nav-item active'
-  navGT.ariaSelected='false'
-  navSigma.ariaSelected='false'
-  navAvg.ariaSelected='false'
-  navTab2.ariaSelected='false'
-  navNetwork.ariaSelected='true'
-  navContentGTDiv.className='tab-pane fade'
-  navContentSigmaDiv.className='tab-pane fade'
-  navContentAvgDiv.className='tab-pane fade'
-  navContentTab2Div.className='tab-pane fade'
-  navContentNetworkDiv.className='tab-pane fade show active'
-  navPathway.className='nav-item'
-  navPathway.ariaSelected='false'
-  navContentPathWayDiv.className='tab-pane fade'
-  navCompBeforeAfter.className='nav-item'
-  navCompBeforeAfter.ariaSelected='false'
-  navContentCompBeforeAfterDiv.className='tab-pane fade'
-  navAPI.className='nav-item'
-  navAPI.ariaSelected='false'
-  navContentAPIDiv.className='tab-pane fade'
-})
+// navNetwork.addEventListener('click',()=>{
+//   navGT.className='nav-item'
+//   navSigma.className='nav-item'
+//   navAvg.className='nav-item'
+//   navTab2.className='nav-item'
+//   navNetwork.className='nav-item active'
+//   navGT.ariaSelected='false'
+//   navSigma.ariaSelected='false'
+//   navAvg.ariaSelected='false'
+//   navTab2.ariaSelected='false'
+//   navNetwork.ariaSelected='true'
+//   navContentGTDiv.className='tab-pane fade'
+//   navContentSigmaDiv.className='tab-pane fade'
+//   navContentAvgDiv.className='tab-pane fade'
+//   navContentTab2Div.className='tab-pane fade'
+//   navContentNetworkDiv.className='tab-pane fade show active'
+//   navPathway.className='nav-item'
+//   navPathway.ariaSelected='false'
+//   navContentPathWayDiv.className='tab-pane fade'
+//   navCompBeforeAfter.className='nav-item'
+//   navCompBeforeAfter.ariaSelected='false'
+//   navContentCompBeforeAfterDiv.className='tab-pane fade'
+//   navAPI.className='nav-item'
+//   navAPI.ariaSelected='false'
+//   navContentAPIDiv.className='tab-pane fade'
+// })
 
-navCompBeforeAfter.addEventListener('click',()=>{
-  navGT.className='nav-item'
-  navSigma.className='nav-item'
-  navAvg.className='nav-item'
-  navTab2.className='nav-item'
-  navNetwork.className='nav-item'
-  navGT.ariaSelected='false'
-  navSigma.ariaSelected='false'
-  navAvg.ariaSelected='false'
-  navTab2.ariaSelected='false'
-  navNetwork.ariaSelected='false'
-  navContentGTDiv.className='tab-pane fade'
-  navContentSigmaDiv.className='tab-pane fade'
-  navContentAvgDiv.className='tab-pane fade'
-  navContentTab2Div.className='tab-pane fade'
-  navContentNetworkDiv.className='tab-pane fade'
-  navPathway.className='nav-item'
-  navPathway.ariaSelected='false'
-  navContentPathWayDiv.className='tab-pane fade'
-  navCompBeforeAfter.className='nav-item active'
-  navCompBeforeAfter.ariaSelected='true'
-  navContentCompBeforeAfterDiv.className='tab-pane fade show active'
-  navAPI.className='nav-item'
-  navAPI.ariaSelected='false'
-  navContentAPIDiv.className='tab-pane fade'
-})
+// navCompBeforeAfter.addEventListener('click',()=>{
+//   navGT.className='nav-item'
+//   navSigma.className='nav-item'
+//   navAvg.className='nav-item'
+//   navTab2.className='nav-item'
+//   navNetwork.className='nav-item'
+//   navGT.ariaSelected='false'
+//   navSigma.ariaSelected='false'
+//   navAvg.ariaSelected='false'
+//   navTab2.ariaSelected='false'
+//   navNetwork.ariaSelected='false'
+//   navContentGTDiv.className='tab-pane fade'
+//   navContentSigmaDiv.className='tab-pane fade'
+//   navContentAvgDiv.className='tab-pane fade'
+//   navContentTab2Div.className='tab-pane fade'
+//   navContentNetworkDiv.className='tab-pane fade'
+//   navPathway.className='nav-item'
+//   navPathway.ariaSelected='false'
+//   navContentPathWayDiv.className='tab-pane fade'
+//   navCompBeforeAfter.className='nav-item active'
+//   navCompBeforeAfter.ariaSelected='true'
+//   navContentCompBeforeAfterDiv.className='tab-pane fade show active'
+//   navAPI.className='nav-item'
+//   navAPI.ariaSelected='false'
+//   navContentAPIDiv.className='tab-pane fade'
+// })
 
-navAPI.addEventListener('click',()=>{
-  navGT.className='nav-item'
-  navSigma.className='nav-item'
-  navAvg.className='nav-item'
-  navTab2.className='nav-item'
-  navNetwork.className='nav-item'
-  navGT.ariaSelected='false'
-  navSigma.ariaSelected='false'
-  navAvg.ariaSelected='false'
-  navTab2.ariaSelected='false'
-  navNetwork.ariaSelected='false'
-  navContentGTDiv.className='tab-pane fade'
-  navContentSigmaDiv.className='tab-pane fade'
-  navContentAvgDiv.className='tab-pane fade'
-  navContentTab2Div.className='tab-pane fade'
-  navContentNetworkDiv.className='tab-pane fade'
-  navPathway.className='nav-item'
-  navPathway.ariaSelected='false'
-  navContentPathWayDiv.className='tab-pane fade'
-  navCompBeforeAfter.className='nav-item'
-  navCompBeforeAfter.ariaSelected='false'
-  navContentCompBeforeAfterDiv.className='tab-pane fade'
-  navAPI.className='nav-item active'
-  navAPI.ariaSelected='true'
-  navContentAPIDiv.className='tab-pane fade show active'
-})
+// navAPI.addEventListener('click',()=>{
+//   navGT.className='nav-item'
+//   navSigma.className='nav-item'
+//   navAvg.className='nav-item'
+//   navTab2.className='nav-item'
+//   navNetwork.className='nav-item'
+//   navGT.ariaSelected='false'
+//   navSigma.ariaSelected='false'
+//   navAvg.ariaSelected='false'
+//   navTab2.ariaSelected='false'
+//   navNetwork.ariaSelected='false'
+//   navContentGTDiv.className='tab-pane fade'
+//   navContentSigmaDiv.className='tab-pane fade'
+//   navContentAvgDiv.className='tab-pane fade'
+//   navContentTab2Div.className='tab-pane fade'
+//   navContentNetworkDiv.className='tab-pane fade'
+//   navPathway.className='nav-item'
+//   navPathway.ariaSelected='false'
+//   navContentPathWayDiv.className='tab-pane fade'
+//   navCompBeforeAfter.className='nav-item'
+//   navCompBeforeAfter.ariaSelected='false'
+//   navContentCompBeforeAfterDiv.className='tab-pane fade'
+//   navAPI.className='nav-item active'
+//   navAPI.ariaSelected='true'
+//   navContentAPIDiv.className='tab-pane fade show active'
+// })
+
+navbar();
 
 var pathWayGrid = document.getElementById('gene-pathway-table');
 pathWayGrid.addEventListener('change',()=>{
-  callPagerAPI();
+  // callPagerAPI();
 })
 
 var len=0;
 var generate = document.getElementById('Generate');
 var result=0, lastIternation=0;
 
-var graphDiv = document.getElementById('canvas-div');
+graphDiv = document.getElementById('canvas-div') as HTMLDivElement;
 // var selectionLayer = document.getElementsByTagName('selectionlayer');
 // selectionLayer[0].addEventListener('click',()=>{
 //   alert('clicked');
 // })
-// $('#canvas-div01').on('click',(eventData)=>{
-//   alert('click done')
-//   extractBarPlot(graphDiv);
-// })
+$('#canvas-div').on('plotly_selected',(eventData)=>{
+  alert('click done');
+  console.log(eventData)
+  extractBarPlot(graphDiv);
+})
 // console.log('hey')
 // console.log(typeof(graphDiv))
 // console.log('graphdiv methods: '+Object.keys(Plotly))
@@ -1385,11 +1438,35 @@ selectGeneDiv.addEventListener('change',()=>{
   //   scatterNames.push(optionText);
   // }
 })
+
+function fetchDataForGivenSamples(...gensListArgs:any[]){
+  console.log(gensListArgs);
+  var argsFlag=gensListArgs[0]!=undefined
+  for(var i=0;i<keys.length;i++){
+    // console.log(argsFlag)
+    if(argsFlag && !(gensListArgs[0].includes(keys[i])))
+      continue
+    var row = mergedMap[keys[i]];
+    // if(gensListArgs[0].includes(row[0]))
+    //   console.log(row[0])
+    // if(argsFlag && !(gensListArgs[0].includes(row[0])))
+    //   continue;
+    geneName[nameIndex++]=row[0];
+    layoutDataX[xIndex++]=0.9*row[1]+0.05;
+    layoutDataY[yIndex++]=1-(0.9*row[2]+0.05);
+    expressionData[expIndex++]=row[3];
+    if(summedExp[row[0]]==undefined)
+      summedExp[row[0]]=row[3]
+    else
+      summedExp[row[0]]+=row[3]
+  }
+}
+
 a = getExp();
 b = getXandY();
-var store = require('store');
+var keys,mergedMap;
 // console.log('layout: '+b['cacng3']);
-async function generateTexture(selection){
+async function generateTexture(selection, ...genesList){
   purgeDivs()
   console.log('app.ts || generate');
   const startTime = new Date().getTime();
@@ -1417,7 +1494,7 @@ async function generateTexture(selection){
       console.log('select')
       // console.log(select);
       console.log(selection);
-      var mergedMap = mergeLayoutExpData(b,a,'sampleKey');
+      mergedMap = mergeLayoutExpData(b,a,'sampleKey');
       var endTime1 = new Date().getTime();
         // lastIternation=1;
     // if(selection[selection.length-1]==select){
@@ -1427,33 +1504,33 @@ async function generateTexture(selection){
     // console.log('select '+ select)
     //layoutDataMap = getExpData1(expData,layoutData,select);
     //console.log('size: '+layoutDataMap['SULT4A1'])
-    var keys = Object.keys(mergedMap);
+    // var tempGenes = [
+    //   "CACNG3",
+    //   "LOXL2",
+    //   "IL18",
+    //   "KCNC1",
+    //   "FPR1",
+    //   "POSTN",
+    //   "EDNRA",
+    //   "CAMK1D",]
+    keys = Object.keys(mergedMap);
     len=keys.length;
+    if(genesList.length!=0)
+      len = genesList[0].length
       geneName = new Array(len);
       layoutDataX = new Float32Array(len);
       layoutDataY = new Float32Array(len);
       expressionData = new Float32Array(len);
       nameIndex=0,xIndex=0,yIndex=0,expIndex=0;
       summedExp=new Map<String,number>()
-      for(var i=0;i<keys.length;i++){
-        var row = mergedMap[keys[i]];
-        //console.log('row: '+row);
-        geneName[nameIndex++]=row[0];
-        layoutDataX[xIndex++]=0.9*row[1]+0.05;
-        layoutDataY[yIndex++]=1-(0.9*row[2]+0.05);
-        expressionData[expIndex++]=row[3];
-        if(summedExp[row[0]]==undefined)
-          summedExp[row[0]]=row[3]
-        else
-          summedExp[row[0]]+=row[3]
-      }
+      fetchDataForGivenSamples(genesList[0]);
     var endTime2 = new Date().getTime();
     console.log('loading data and mergelayout function'+(endTime1-startTime1)+"\n after merge layout for loop: "+(endTime2-endTime1)+"Overall time: "+(endTime2-startTime1))
-    // console.log('x: '+layoutDataX.length+' y: '+layoutDataY.length+' exp: '+expressionData.length+' gene: '+geneName.length)
-    // console.log('layoutx: '+layoutDataX)
-    // console.log('layouty: '+layoutDataY)
-    // console.log('expression data: '+expressionData)
-    // console.log('gene name: '+geneName)
+    console.log('x: '+layoutDataX.length+' y: '+layoutDataY.length+' exp: '+expressionData.length+' gene: '+geneName.length)
+    console.log('layoutx: '+layoutDataX)
+    console.log('layouty: '+layoutDataY)
+    console.log('expression data: '+expressionData)
+    console.log('gene name: '+geneName)
     // var outcome=await main(expressionData, layoutDataX, layoutDataY, geneName, sigma, showGene, scaleMin, scaleMax, resolution, selection.length, lastIternation, data, selectionLen, summedExp) as unknown as Float32Array;
     await main(expressionData, layoutDataX, layoutDataY, geneName, sigma, showGene, scaleMin, scaleMax, resolution, selection.length, lastIternation, selectionLen, summedExp, weightsArrayMap) as unknown as Float32Array;
     // await convertPromiseToFloat32Array(outcome).then((d)=>{
@@ -1481,24 +1558,46 @@ generate.addEventListener('click',async ()=>{
   var startTime = new Date().getTime();
   await generateTexture(selection);
   var endTime = new Date().getTime();
-  alert('Time taken to generate GeneTerrain: '+(endTime-startTime))
+  // alert('Time taken to generate GeneTerrain: '+(endTime-startTime))
 });
 
 generateTab2.addEventListener('click',async()=>{
   lastIternation=21;
+  store.set('lastIternation',lastIternation)
   selection=getTab2Selection01();
   console.log('1. '+selection)
   await generateTexture(selection);
   lastIternation=22;
+  store.set('lastIternation',lastIternation)
   selection=getTab2Selection02();
   console.log('2. '+selection)
   await generateTexture(selection);
 })
+
+var generatePatwayDetails = document.getElementById("Generate-PD")
+var genesDiv = document.getElementById("store-genes-input") as HTMLInputElement;
+var genesByPagIdDiv = document.getElementById("store-genes-input-bypagid") as HTMLInputElement;
+generatePatwayDetails.addEventListener('click',async()=>{
+  alert('im here')
+  lastIternation=42;
+  store.set('lastIternation',lastIternation)
+  selection=getTab2Selection01();
+  var genesList = genesByPagIdDiv.innerText.split(',');
+  console.log('1. '+selection)
+  console.log('genes:  '+ genesList)
+  await generateTexture(selection, genesList);
+})
+
 Chat();
 })
+
+
 
 react_select_options_cancer_type();
 
 async function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
+// callPagerAPI()
+pagerAGGrid()
+// send()
